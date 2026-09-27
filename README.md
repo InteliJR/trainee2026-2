@@ -74,4 +74,30 @@ backend/
 └── package.json
 ~~~
 
-As instruções de instalação e execução serão adicionadas durante a preparação das aplicações.
+## Executando o back-end
+
+Requisitos: Node.js 22+, npm e Docker com Compose.
+
+~~~bash
+cp .env.example .env
+cp backend/.env.example backend/.env
+docker compose up -d postgres
+cd backend
+npm install
+npm run dev
+~~~
+
+A API fica disponível em `http://localhost:3333`. Para verificar a execução, acesse
+`GET /health`.
+
+Comandos úteis do back-end:
+
+~~~bash
+npm run typecheck
+npm test
+npm run build
+npm start
+~~~
+
+As variáveis são validadas na inicialização. Consulte `backend/.env.example` para a
+lista completa e não versione arquivos `.env` nem credenciais reais.

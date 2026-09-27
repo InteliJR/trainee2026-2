@@ -1,0 +1,65 @@
+.button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 9px 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-leaf), transparent 55%);
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.primary {
+  background: var(--color-forest);
+  color: var(--color-paper);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--color-canopy);
+}
+
+.secondary {
+  border-color: var(--color-border);
+  background: transparent;
+  color: var(--color-forest);
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--color-leaf);
+  background: color-mix(in srgb, var(--color-leaf), transparent 92%);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--color-canopy);
+}
+
+.ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-leaf), transparent 92%);
+}
+
+.danger {
+  background: var(--color-rust);
+  color: var(--color-paper);
+}
+
+.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-rust), black 12%);
+}
