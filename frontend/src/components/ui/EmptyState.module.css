@@ -1,0 +1,36 @@
+.emptyState {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  padding: 36px 20px;
+  text-align: center;
+}
+
+.marker {
+  width: 30px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-leaf);
+}
+
+.emptyState h2,
+.emptyState p {
+  max-width: 46ch;
+  margin: 0;
+}
+
+.emptyState h2 {
+  color: var(--color-forest);
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.emptyState p {
+  color: var(--color-canopy);
+  line-height: 1.5;
+}
+
+.action {
+  margin-top: 7px;
+}
