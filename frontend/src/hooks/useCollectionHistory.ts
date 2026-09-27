@@ -15,6 +15,7 @@ export type UseCollectionHistoryResult = {
   status: CollectionHistoryStatus
   error: Error | null
   hasMore: boolean
+  statusFilter: CollectionStatus | undefined
   loadMore: () => void
   setStatusFilter: (status: CollectionStatus | undefined) => void
   refetch: () => void
@@ -70,6 +71,7 @@ export function useCollectionHistory(): UseCollectionHistoryResult {
     status,
     error,
     hasMore: nextCursor !== null,
+    statusFilter: query.status,
     loadMore: () => {
       if (nextCursor === null || status === 'loading') return
       setQuery((current) => ({ ...current, cursor: nextCursor }))
