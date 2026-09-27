@@ -26,6 +26,7 @@ Decisões pendentes:
 ## Documentação
 
 A documentação funcional e técnica está em [docs/projeto-ecorota.md](docs/projeto-ecorota.md).
+O guia de rotas para os dois front-ends está em [docs/api-frontends.md](docs/api-frontends.md).
 
 Ela contém:
 

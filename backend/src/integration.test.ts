@@ -17,6 +17,7 @@ import { hashPassword } from './services/auth-service.js'
 import { AppError } from './errors/app-error.js'
 import { CollectionService } from './services/coletaService.js'
 import { PointService } from './services/pontosService.js'
+import { RewardService } from './services/reward-service.js'
 
 const pointId = '0e76397e-154d-48a0-bf76-689a8fed00ac'
 const point: EcoRotaPoint = {
@@ -510,5 +511,115 @@ describe('resident flow with PostgreSQL', () => {
     })
     expect(others.json().data).toHaveLength(0)
     expect(await prisma.collection.count({ where: { residentId } })).toBeGreaterThan(1)
+  })
+
+  it('persists multiple materials and the chosen future date without dispatching early', async () => {
+    const scheduledAt = new Date(Date.now() + 120_000).toISOString()
+    const before = gateway.createCalls.length
+    const response = await app.inject({
+      method: 'POST', url: '/api/v1/collections', headers: auth(),
+      payload: input({
+        scheduledAt,
+        notes: 'Retirar na portaria',
+        materials: [
+          { type: 'paper', quantity: 1.25, unit: 'kg' },
+          { type: 'other', quantity: 2, unit: 'units', description: 'Baterias' },
+        ],
+      }),
+    })
+    expect(response.statusCode).toBe(201)
+    expect(response.json().data.status).toBe('scheduled')
+    expect(response.json().data.materials).toHaveLength(2)
+    expect(gateway.createCalls).toHaveLength(before)
+
+    const saved = await prisma.collection.findUniqueOrThrow({
+      where: { id: response.json().data.id }, include: { materials: true },
+    })
+    expect(saved.scheduledAt?.toISOString()).toBe(scheduledAt)
+    expect(saved.notes).toBe('Retirar na portaria')
+    expect(saved.materials.map((material) => material.type)).toEqual(
+      expect.arrayContaining(['paper', 'other']),
+    )
+    expect(saved.materials.find((material) => material.type === 'other')?.description).toBe('Baterias')
+  })
+
+  it('rejects invalid history cursors and unknown collection points', async () => {
+    const cursor = await app.inject({
+      method: 'GET', url: '/api/v1/collections?cursor=not-a-cursor', headers: auth(),
+    })
+    expect(cursor.statusCode).toBe(400)
+    expect(cursor.json().code).toBe('VALIDATION_ERROR')
+
+    const before = await prisma.collection.count({ where: { residentId } })
+    const unknownPoint = await app.inject({
+      method: 'POST', url: '/api/v1/collections', headers: auth(),
+      payload: input({ collectionPointId: randomUUID() }),
+    })
+    expect(unknownPoint.statusCode).toBe(404)
+    expect(await prisma.collection.count({ where: { residentId } })).toBe(before)
+  })
+
+  it('credits a completed collection once under concurrent attempts', async () => {
+    const created = await app.inject({
+      method: 'POST', url: '/api/v1/collections', headers: auth(), payload: input(),
+    })
+    const id = created.json().data.id as string
+    await prisma.collection.update({ where: { id }, data: { status: 'completed' } })
+
+    const rewards = new RewardService(prisma)
+    const results = await Promise.all([
+      rewards.creditCompletedCollectionOnce(id, 12),
+      rewards.creditCompletedCollectionOnce(id, 12),
+    ])
+    expect(results.map((result) => result.awarded).sort()).toEqual([false, true])
+    expect(results.every((result) => result.pointsAwarded === 12)).toBe(true)
+
+    const transactions = await prisma.rewardTransaction.findMany({
+      where: { collectionId: id, reason: 'collection_completed' },
+    })
+    expect(transactions).toHaveLength(1)
+    expect(transactions[0]).toMatchObject({ userId: residentId, kind: 'credit', amount: 12 })
+    expect((await prisma.collection.findUniqueOrThrow({ where: { id } })).pointsAwarded).toBe(12)
+
+    const replay = await rewards.creditCompletedCollectionOnce(id, 99)
+    expect(replay).toEqual({ awarded: false, pointsAwarded: 12 })
+    expect(await prisma.rewardTransaction.count({ where: { collectionId: id } })).toBe(1)
+  })
+
+  it('rejects credit before completion and invalid point amounts', async () => {
+    const created = await app.inject({
+      method: 'POST', url: '/api/v1/collections', headers: auth(), payload: input(),
+    })
+    const id = created.json().data.id as string
+    const rewards = new RewardService(prisma)
+
+    await expect(rewards.creditCompletedCollectionOnce(id, 10)).rejects.toMatchObject({
+      code: 'COLLECTION_NOT_COMPLETABLE', statusCode: 409,
+    })
+    for (const points of [0, -1, 1.5, 2_147_483_648]) {
+      await expect(rewards.creditCompletedCollectionOnce(id, points)).rejects.toMatchObject({
+        code: 'VALIDATION_ERROR', statusCode: 400,
+      })
+    }
+    expect(await prisma.rewardTransaction.count({ where: { collectionId: id } })).toBe(0)
+    expect((await prisma.collection.findUniqueOrThrow({ where: { id } })).pointsAwarded).toBeNull()
+  })
+
+  it('rolls back the collection update if the unique ledger entry already exists', async () => {
+    const created = await app.inject({
+      method: 'POST', url: '/api/v1/collections', headers: auth(), payload: input(),
+    })
+    const id = created.json().data.id as string
+    await prisma.collection.update({ where: { id }, data: { status: 'completed' } })
+    await prisma.rewardTransaction.create({
+      data: {
+        userId: residentId, collectionId: id, kind: 'credit',
+        reason: 'collection_completed', amount: 3,
+      },
+    })
+
+    await expect(new RewardService(prisma).creditCompletedCollectionOnce(id, 12)).rejects.toBeTruthy()
+    expect((await prisma.collection.findUniqueOrThrow({ where: { id } })).pointsAwarded).toBeNull()
+    expect(await prisma.rewardTransaction.count({ where: { collectionId: id } })).toBe(1)
   })
 })

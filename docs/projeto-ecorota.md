@@ -208,8 +208,10 @@ Cada coleta pertence a um morador e a um ponto; materiais são linhas separadas
 com tipo, quantidade e unidade. `externalReference` é única e derivada do UUID
 local. `ecorotaRequestId` guarda o vínculo com a solicitação externa. O
 histórico é consultado por morador, ordenado por criação e paginado por cursor.
-A tabela de movimentações possui restrição única por coleta e motivo, preparada
-para impedir créditos duplicados quando a pontuação for implementada.
+A tabela de movimentações possui restrição única por coleta e motivo. O serviço
+de crédito usa uma transação e essa restrição para registrar, no máximo uma
+vez, os pontos de cada coleta concluída; a quantidade de pontos permanece
+indefinida até a decisão da tarefa 14.
 
 ## 9. Integração EcoRota
 
@@ -229,12 +231,13 @@ solicitação antes de cancelar.
 
 Consulta e histórico do morador usam o estado local. A atualização após
 mudanças na EcoRota, como atribuição e conclusão, depende da sincronização
-a ser implementada pelo Glauco. A pontuação será implementada na tarefa 14.
+a ser implementada pelo Glauco. A proteção contra créditos duplicados já
+existe, mas o cálculo e o disparo da pontuação aguardam a decisão da tarefa 14.
 
 ## 10. Contrato da API interna
 
 Os schemas Zod em `backend/src/contracts` são a fonte executável deste contrato.
-A especificação OpenAPI será consolidada na etapa de documentação das rotas.
+O guia operacional para ambos os front-ends está em `docs/api-frontends.md`.
 
 ### 10.1 Convenções
 
@@ -255,7 +258,7 @@ A especificação OpenAPI será consolidada na etapa de documentação das rotas
 | GET | `/api/v1/collection-points/:id` | Autenticado | Detalha um ponto |
 | POST | `/api/v1/collections` | Morador | Cria coleta imediata ou agendada |
 | GET | `/api/v1/collections` | Morador | Histórico próprio com cursor |
-| GET | `/api/v1/collections/:id` | Envolvido | Detalha coleta própria ou atribuída |
+| GET | `/api/v1/collections/:id` | Morador proprietário; coletor pendente | Detalha coleta própria |
 | POST | `/api/v1/collections/:id/cancel` | Morador proprietário | Cancela antes de `in_service` |
 | PATCH | `/api/v1/collectors/me/availability` | Coletor | Altera disponibilidade |
 | GET | `/api/v1/collectors/me/assignment` | Coletor | Coleta atribuída ou `data: null` |
@@ -263,8 +266,9 @@ A especificação OpenAPI será consolidada na etapa de documentação das rotas
 | GET | `/api/v1/rewards/balance` | Morador | Saldo de pontos |
 | GET | `/api/v1/rewards/transactions` | Morador | Extrato com cursor |
 
-Criação retorna HTTP 201. As outras operações bem-sucedidas retornam HTTP 200.
-Cancelamento e conclusão devolvem a coleta atualizada.
+As rotas de coletor e recompensas nesta tabela ainda são contratos planejados,
+não rotas disponíveis. Criação retorna HTTP 201; outras operações implementadas
+retornam HTTP 200. Cancelamento devolve a coleta atualizada.
 
 ### 10.3 Autenticação
 
