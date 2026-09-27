@@ -1,0 +1,66 @@
+.card {
+  position: relative;
+  display: grid;
+  min-height: 150px;
+  align-content: start;
+  justify-items: start;
+  gap: 9px;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: var(--color-leaf);
+}
+
+.card:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-leaf), transparent 65%);
+  outline-offset: 2px;
+}
+
+.selected {
+  border-color: var(--color-canopy);
+  background: color-mix(in srgb, var(--color-leaf), var(--color-paper) 90%);
+  box-shadow: inset 0 0 0 1px var(--color-canopy);
+}
+
+.kind {
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: color-mix(in srgb, var(--color-canopy), transparent 90%);
+  color: var(--color-canopy);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kind[data-kind='additional'] {
+  background: color-mix(in srgb, var(--color-amber), transparent 88%);
+  color: var(--color-amber);
+}
+
+.name {
+  color: var(--color-forest);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.coordinates {
+  color: var(--color-canopy);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.selection {
+  position: absolute;
+  right: 16px;
+  bottom: 15px;
+  color: var(--color-leaf);
+  font-size: 12px;
+  font-weight: 600;
+}
