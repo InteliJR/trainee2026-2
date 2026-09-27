@@ -4,5 +4,153 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  resident
+  collector
+}
+
+enum CollectionStatus {
+  scheduled
+  pending
+  assigned
+  in_service
+  completed
+  cancelled
+  integration_failed
+}
+
+enum MaterialType {
+  paper
+  plastic
+  glass
+  metal
+  electronics
+  other
+}
+
+enum MaterialUnit {
+  kg
+  units
+  bags
+}
+
+enum CollectionPointKind {
+  habitual
+  additional
+}
+
+enum RewardTransactionKind {
+  credit
+  debit
+}
+
+enum RewardTransactionReason {
+  collection_completed
+  reward_redeemed
+  adjustment
+}
+
+model User {
+  id           String              @id @default(uuid()) @db.Uuid
+  name         String
+  email        String              @unique
+  passwordHash String
+  role         UserRole
+  sessions     AuthSession[]
+  collector    Collector?
+  collections  Collection[]        @relation("ResidentCollections")
+  transactions RewardTransaction[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+}
+
+model AuthSession {
+  id        String   @id @default(uuid()) @db.Uuid
+  tokenHash String   @unique
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Collector {
+  id                 String       @id @default(uuid()) @db.Uuid
+  userId             String       @unique @db.Uuid
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ecorotaCollectorId String?      @unique @db.Uuid
+  collections        Collection[]
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model CollectionPoint {
+  id          String              @id @db.Uuid
+  name        String
+  kind        CollectionPointKind
+  longitude   Float
+  latitude    Float
+  collections Collection[]
+  updatedAt   DateTime            @updatedAt
+}
+
+model Collection {
+  id                String              @id @default(uuid()) @db.Uuid
+  residentId        String              @db.Uuid
+  resident          User                @relation("ResidentCollections", fields: [residentId], references: [id])
+  collectorId       String?             @db.Uuid
+  collector         Collector?          @relation(fields: [collectorId], references: [id])
+  collectionPointId String              @db.Uuid
+  collectionPoint   CollectionPoint     @relation(fields: [collectionPointId], references: [id])
+  materials         CollectionMaterial[]
+  status            CollectionStatus
+  scheduledAt       DateTime?
+  notes             String?
+  externalReference String              @unique
+  ecorotaRequestId  String?             @unique @db.Uuid
+  dispatchLockedAt  DateTime?
+  nextAttemptAt     DateTime?
+  lastSyncedAt      DateTime?
+  integrationError  String?
+  pointsAwarded     Int?
+  transactions      RewardTransaction[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([residentId, createdAt, id])
+  @@index([status, scheduledAt])
+}
+
+model CollectionMaterial {
+  id           String       @id @default(uuid()) @db.Uuid
+  collectionId String       @db.Uuid
+  collection   Collection   @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  type         MaterialType
+  quantity     Decimal      @db.Decimal(12, 3)
+  unit         MaterialUnit
+  description  String?
+}
+
+model Reward {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  pointsCost Int
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model RewardTransaction {
+  id           String                  @id @default(uuid()) @db.Uuid
+  userId       String                  @db.Uuid
+  user         User                    @relation(fields: [userId], references: [id])
+  collectionId String?                 @db.Uuid
+  collection   Collection?             @relation(fields: [collectionId], references: [id])
+  kind         RewardTransactionKind
+  amount       Int
+  reason       RewardTransactionReason
+  createdAt    DateTime                @default(now())
+
+  @@index([userId, createdAt, id])
+  @@unique([collectionId, reason])
 }

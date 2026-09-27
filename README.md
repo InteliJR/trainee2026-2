@@ -4,7 +4,7 @@ Plataforma web para organizar solicitações de coleta de materiais recicláveis
 
 ## Estado atual
 
-O projeto está na fase de definição e preparação da estrutura técnica.
+O back-end já oferece autenticação demonstrativa, rotas do morador, agendamento, cancelamento e histórico sobre dados locais. O cliente HTTP e a sincronização com a EcoRota serão implementados por Glauco.
 
 Decisões estabelecidas:
 
@@ -84,11 +84,29 @@ cp backend/.env.example backend/.env
 docker compose up -d postgres
 cd backend
 npm install
+npm run db:generate
+npm run db:migrate
+DEMO_PASSWORD='escolha-uma-senha-com-12-caracteres' npm run db:seed-demo
 npm run dev
 ~~~
 
 A API fica disponível em `http://localhost:3333`. Para verificar a execução, acesse
-`GET /health`.
+`GET /health`. As rotas de pontos leem o banco local; o seed demonstrativo cria
+usuários, mas não cria pontos. Até o cliente HTTP do Glauco ser acoplado,
+nenhuma chamada real à EcoRota é feita. A credencial da equipe deverá ficar
+somente no back-end quando essa integração estiver pronta.
+
+O seed cria `demo-resident@ecorota.local` e `demo-collector@ecorota.local`
+com a senha definida em `DEMO_PASSWORD`. Envie e-mail e senha para
+`POST /api/v1/auth/login` e use o `accessToken` como Bearer token nas demais
+rotas. O processo do servidor tenta despachar coletas agendadas quando chegar
+o horário. O envio efetivo depende do adaptador EcoRota a ser instalado.
+
+Se o adaptador externo estiver ausente ou falhar depois de salvar uma
+solicitação imediata, a criação retorna `integration_failed` e o servidor
+tenta reenviá-la com a mesma referência. O morador consulta a coleta pelo
+`id` local; o cancelamento de uma solicitação já enviada depende do adaptador.
+A atualização dos estados externos também será feita pela integração do Glauco.
 
 Comandos úteis do back-end:
 

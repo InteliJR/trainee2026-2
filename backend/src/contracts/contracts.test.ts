@@ -43,6 +43,10 @@ describe('API contracts', () => {
     expect(() =>
       materialSchema.parse({ type: 'other', quantity: 1, unit: 'units' }),
     ).toThrow()
+
+    expect(() =>
+      materialSchema.parse({ type: 'paper', quantity: 0.0001, unit: 'kg' }),
+    ).toThrow()
   })
 
   it('accepts immediate and scheduled collections', () => {

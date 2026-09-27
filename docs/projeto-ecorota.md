@@ -199,7 +199,37 @@ trainee2026-2/
 
 ## 8. Modelagem do banco de dados
 
+O schema Prisma em `backend/prisma/schema.prisma` contém usuários (com perfil
+`resident` ou `collector`), sessões de autenticação, coletores customizados,
+pontos da EcoRota, coletas, materiais, recompensas e movimentações de pontos.
+A migração inicial está em `backend/prisma/migrations`.
+
+Cada coleta pertence a um morador e a um ponto; materiais são linhas separadas
+com tipo, quantidade e unidade. `externalReference` é única e derivada do UUID
+local. `ecorotaRequestId` guarda o vínculo com a solicitação externa. O
+histórico é consultado por morador, ordenado por criação e paginado por cursor.
+A tabela de movimentações possui restrição única por coleta e motivo, preparada
+para impedir créditos duplicados quando a pontuação for implementada.
+
 ## 9. Integração EcoRota
+
+`EcoRotaGateway` define `listPoints`, `createRequest`, `getRequest` e
+`cancelRequest`. Este branch define o contrato e um adaptador temporário que
+responde 503; o cliente HTTP, a credencial e a sincronização externa ficam
+para a implementação do Glauco. Os pontos exibidos pelas rotas do morador
+são lidos do banco local.
+
+A criação salva a coleta e os materiais antes de chamar o gateway. Quando
+`scheduledAt` é futuro, o processo do servidor tenta enviar a solicitação
+somente após esse horário. Cada tentativa usa `collection:<id-local>` como
+referência estável. O serviço grava o `ecorotaRequestId` retornado pelo
+gateway e mantém falhas locais para nova tentativa. Se o envio anterior tiver
+resultado incerto, o cancelamento usa a mesma referência para reconciliar a
+solicitação antes de cancelar.
+
+Consulta e histórico do morador usam o estado local. A atualização após
+mudanças na EcoRota, como atribuição e conclusão, depende da sincronização
+a ser implementada pelo Glauco. A pontuação será implementada na tarefa 14.
 
 ## 10. Contrato da API interna
 
@@ -279,8 +309,10 @@ Materiais: `paper`, `plastic`, `glass`, `metal`, `electronics` e
 ~~~
 
 Sem `scheduledAt`, a solicitação é enviada imediatamente. Com data futura, fica
-`scheduled` localmente e só é enviada à EcoRota no horário previsto. Para mudar a
-data no MVP, o morador cancela e cria outra coleta.
+`scheduled` localmente e só é enviada à EcoRota no horário previsto. Se o
+envio imediato falhar, a API devolve HTTP 201 com estado `integration_failed`
+e mantém os dados locais para nova tentativa. Para mudar a data no MVP, o
+morador cancela e cria outra coleta.
 
 Estados públicos:
 
