@@ -1,3 +1,5 @@
+import { getToken } from './authStorage'
+
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333'
 
 export type RequestOptions = Omit<RequestInit, 'body'> & {
@@ -20,6 +22,10 @@ export async function request<T>(
   const requestHeaders = new Headers(headers)
   if (!requestHeaders.has('Content-Type')) {
     requestHeaders.set('Content-Type', 'application/json')
+  }
+  const token = getToken()
+  if (token && !requestHeaders.has('Authorization')) {
+    requestHeaders.set('Authorization', `Bearer ${token}`)
   }
   const response = await fetch(buildUrl(path), {
     ...fetchOptions,
