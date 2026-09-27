@@ -1,6 +1,6 @@
 import type { CollectionPoint } from '../../types'
 import type { CollectionPointsStatus } from '../../hooks/useCollectionPoints'
-import { EmptyState, ErrorState, Loading } from '../ui'
+import { Button, EmptyState, ErrorState, Loading } from '../ui'
 import CollectionPointCard from './CollectionPointCard'
 import styles from './CollectionPointList.module.css'
 
@@ -11,6 +11,7 @@ export type CollectionPointListProps = {
   onRetry: () => void
   selectedId: string | null
   onSelect: (point: CollectionPoint) => void
+  onContinue?: () => void
 }
 
 export default function CollectionPointList({
@@ -20,6 +21,7 @@ export default function CollectionPointList({
   onRetry,
   selectedId,
   onSelect,
+  onContinue,
 }: CollectionPointListProps) {
   if (status === 'loading' || status === 'idle') {
     return <Loading label="Buscando pontos de coleta" />
@@ -51,15 +53,22 @@ export default function CollectionPointList({
   )
 
   return (
-    <div className={styles.list} aria-label="Pontos de coleta">
-      {orderedPoints.map((point) => (
-        <CollectionPointCard
-          key={point.id}
-          point={point}
-          selected={point.id === selectedId}
-          onClick={onSelect}
-        />
-      ))}
+    <div className={styles.content}>
+      <div className={styles.list} aria-label="Pontos de coleta">
+        {orderedPoints.map((point) => (
+          <CollectionPointCard
+            key={point.id}
+            point={point}
+            selected={point.id === selectedId}
+            onClick={onSelect}
+          />
+        ))}
+      </div>
+      <div className={styles.actions}>
+        <Button disabled={!selectedId} onClick={onContinue}>
+          Continuar
+        </Button>
+      </div>
     </div>
   )
 }
