@@ -1,20 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 :root {
-  font-family: 'IBM Plex Sans', sans-serif;
-  color: #183b2d;
-  background: #f4f6ef;
+  font-family: var(--font-body);
+  color: var(--color-forest);
+  background: var(--color-paper);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 
-  --color-forest: #183b2d;
-  --color-leaf: #4c8a53;
-  --color-sage: #a9c69a;
-  --color-moss: #dce8d1;
-  --color-paper: #f4f6ef;
-  --color-ink: #183b2d;
+  --color-forest: #12281f;
+  --color-leaf: #6e8f4c;
+  --color-canopy: #254f3b;
+  --color-paper: #f1ecdd;
+  --color-amber: #a96b16;
+  --color-rust: #a34b36;
+  --color-success: #39744b;
+  --color-border: #d5cfbe;
+  --radius: 6px;
   --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
 }
 
 * {
