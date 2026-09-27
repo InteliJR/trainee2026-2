@@ -1,0 +1,40 @@
+.loading {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  gap: 9px;
+  color: var(--color-canopy);
+  font-size: 14px;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border: 2px solid color-mix(in srgb, var(--color-leaf), transparent 72%);
+  border-top-color: var(--color-leaf);
+  border-radius: 50%;
+  animation: spin 750ms linear infinite;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 1800ms;
+  }
+}
