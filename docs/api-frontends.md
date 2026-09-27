@@ -128,8 +128,10 @@ Sem data, o back-end tenta enviar imediatamente pelo gateway EcoRota. Com
 data, salva localmente como `scheduled` e só tenta enviar quando chegar a hora.
 Se o envio falhar ou o adaptador ainda não estiver instalado, a API ainda
 responde `201`, mas com `status: "integration_failed"`; não trate isso como
-coleta confirmada externamente. O servidor tentará novamente com a mesma
-referência. Para alterar a data, cancele a coleta e crie outra.
+coleta confirmada externamente. A mesma resposta vale se a EcoRota aceitar o
+pedido, mas falhar a gravação do identificador externo. O servidor tentará
+novamente com a mesma referência. Para alterar a data, cancele a coleta e
+crie outra.
 
 ### Acompanhar, cancelar e consultar histórico
 
@@ -162,11 +164,14 @@ coletas do morador autenticado, da mais recente para a mais antiga. `cursor` e
 `status` são opcionais; `status` aceita os sete estados acima.
 `nextCursor: null` indica fim da lista.
 
-`POST /collections/:id/cancel` não recebe corpo. Coletas `scheduled` ainda não
-enviadas são canceladas localmente. Para `pending` e `assigned`, o gateway
-precisa aceitar o cancelamento; `in_service`, `completed` e `cancelled`
-retornam 409. Uma tentativa de envio com resultado incerto pode exigir
-reconciliação com a EcoRota antes de cancelar. O coletor **não** usa essa rota.
+`POST /collections/:id/cancel` não recebe corpo. Coletas `scheduled` ou
+`integration_failed` sem identificador externo são canceladas localmente, desde
+que o bloqueio de envio esteja livre ou expirado. Para `pending` e `assigned`,
+o gateway precisa
+aceitar o cancelamento; `in_service`, `completed` e `cancelled` retornam 409.
+Se a EcoRota já tiver aceitado um envio cujo identificador não foi gravado, a
+reconciliação externa por referência ainda será necessária quando o adaptador
+a oferecer. O coletor **não** usa essa rota.
 
 ## Front-end do coletor: contratos ainda sem rota
 

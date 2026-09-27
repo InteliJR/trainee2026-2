@@ -118,7 +118,14 @@ export class CollectionService {
       },
     })
 
-    if (!scheduledAt) await this.dispatch(id)
+    if (!scheduledAt) {
+      try {
+        await this.dispatch(id)
+      } catch {
+        // The collection is already persisted. A dispatch write may fail after
+        // EcoRota accepts it; the locked row can be retried with its reference.
+      }
+    }
     return publicCollection(await this.record(id))
   }
 
@@ -150,8 +157,8 @@ export class CollectionService {
         throw new Error('EcoRota returned a different request')
       }
     } catch (error) {
-      await this.prisma.collection.update({
-        where: { id },
+      await this.prisma.collection.updateMany({
+        where: { id, dispatchLockedAt: now, status: { in: ['scheduled', 'integration_failed'] } },
         data: {
           status: 'integration_failed',
           integrationError: error instanceof Error ? error.message : 'Unknown EcoRota error',
@@ -164,7 +171,16 @@ export class CollectionService {
 
     // If persistence fails after EcoRota accepted the request, keep the lock.
     // A retry with the same reference recovers the existing upstream request.
-    await this.applyRemote(id, remote)
+    await this.prisma.collection.updateMany({
+      where: { id, dispatchLockedAt: now, status: { in: ['scheduled', 'integration_failed'] } },
+      data: {
+        ecorotaRequestId: remote.id,
+        status: remote.status,
+        integrationError: null,
+        dispatchLockedAt: null,
+        nextAttemptAt: null,
+      },
+    })
   }
 
   async processDue(): Promise<number> {
@@ -232,8 +248,7 @@ export class CollectionService {
       throw new AppError({ code: 'RESOURCE_NOT_FOUND', message: 'Collection not found', statusCode: 404 })
     }
 
-    let current = record
-    if (!['scheduled', 'integration_failed', 'pending', 'assigned'].includes(current.status)) {
+    if (!['scheduled', 'integration_failed', 'pending', 'assigned'].includes(record.status)) {
       throw new AppError({
         code: 'COLLECTION_NOT_CANCELLABLE',
         message: 'Collection cannot be cancelled in its current state',
@@ -241,34 +256,20 @@ export class CollectionService {
       })
     }
 
-    if (!current.ecorotaRequestId && current.status === 'integration_failed') {
-      if (current.dispatchLockedAt &&
-          current.dispatchLockedAt.getTime() > Date.now() - 60_000) {
-        throw new AppError({
-          code: 'COLLECTION_NOT_CANCELLABLE',
-          message: 'Collection is being sent to EcoRota; retry shortly',
-          statusCode: 409,
-        })
-      }
-      // Re-send the unique reference to learn whether an earlier attempt succeeded.
-      const recovered = await this.ecorota.createRequest({
-        pointId: current.collectionPointId,
-        externalReference: current.externalReference,
-      })
-      current = await this.applyRemote(id, recovered)
-      if (!['pending', 'assigned'].includes(current.status)) {
-        throw new AppError({
-          code: 'COLLECTION_NOT_CANCELLABLE',
-          message: 'Collection cannot be cancelled in its current state',
-          statusCode: 409,
-        })
-      }
-    }
-
-    if (!current.ecorotaRequestId) {
+    if (!record.ecorotaRequestId) {
+      const now = new Date()
       const result = await this.prisma.collection.updateMany({
-        where: { id, residentId, ecorotaRequestId: null, status: 'scheduled', dispatchLockedAt: null },
-        data: { status: 'cancelled' },
+        where: {
+          id,
+          residentId,
+          ecorotaRequestId: null,
+          status: { in: ['scheduled', 'integration_failed'] },
+          OR: [
+            { dispatchLockedAt: null },
+            { dispatchLockedAt: { lt: new Date(now.getTime() - 60_000) } },
+          ],
+        },
+        data: { status: 'cancelled', dispatchLockedAt: null, nextAttemptAt: null },
       })
       if (!result.count) {
         throw new AppError({
@@ -280,7 +281,7 @@ export class CollectionService {
       return publicCollection(await this.record(id))
     }
 
-    const remote = await this.ecorota.cancelRequest(current.ecorotaRequestId)
+    const remote = await this.ecorota.cancelRequest(record.ecorotaRequestId)
     return publicCollection(await this.applyRemote(id, remote))
   }
 }

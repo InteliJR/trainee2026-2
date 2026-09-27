@@ -10,6 +10,9 @@ export function hashPassword(password: string, salt = randomBytes(16).toString('
   return `${salt}:${hash}`
 }
 
+// Use a valid hash for missing accounts so every login attempt runs scrypt.
+const DUMMY_PASSWORD_HASH = hashPassword('invalid-password', '00000000000000000000000000000000')
+
 function verifyPassword(password: string, stored: string): boolean {
   const [salt, expected] = stored.split(':')
   if (!salt || !expected) return false
@@ -31,7 +34,8 @@ export class AuthService {
 
   async login(input: LoginInput) {
     const user = await this.prisma.user.findUnique({ where: { email: input.email.toLowerCase() } })
-    if (!user || !verifyPassword(input.password, user.passwordHash)) {
+    const passwordMatches = verifyPassword(input.password, user?.passwordHash ?? DUMMY_PASSWORD_HASH)
+    if (!user || !passwordMatches) {
       throw new AppError({ code: 'UNAUTHORIZED', message: 'Invalid credentials', statusCode: 401 })
     }
     const accessToken = randomBytes(32).toString('base64url')

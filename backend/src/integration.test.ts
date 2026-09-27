@@ -7,7 +7,7 @@ import { join } from 'node:path'
 
 import type { PrismaClient } from '@prisma/client'
 import EmbeddedPostgres from 'embedded-postgres'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { buildApp } from './app.js'
 import type { Environment } from './config/env.js'
@@ -210,9 +210,29 @@ describe('resident flow with PostgreSQL', () => {
       })
       expect(created.statusCode).toBe(201)
       expect(created.json().data.status).toBe('integration_failed')
+      const cancelled = await isolated.inject({
+        method: 'POST', url: `/api/v1/collections/${created.json().data.id}/cancel`, headers: auth(),
+      })
+      expect(cancelled.statusCode).toBe(200)
+      expect(cancelled.json().data.status).toBe('cancelled')
     } finally {
       await isolated.close()
     }
+  })
+
+  it('returns the same error for unknown emails and wrong passwords', async () => {
+    const responses = await Promise.all([
+      app.inject({
+        method: 'POST', url: '/api/v1/auth/login',
+        payload: { email: 'missing@example.com', password: 'wrong-password' },
+      }),
+      app.inject({
+        method: 'POST', url: '/api/v1/auth/login',
+        payload: { email: 'resident@example.com', password: 'wrong-password' },
+      }),
+    ])
+    expect(responses.map((response) => response.statusCode)).toEqual([401, 401])
+    expect(responses[0]?.json().message).toBe(responses[1]?.json().message)
   })
 
   it('seeds usable demo accounts', async () => {
@@ -392,21 +412,121 @@ describe('resident flow with PostgreSQL', () => {
     )).toHaveLength(1)
   })
 
-  it('reconciles an uncertain EcoRota creation before cancellation', async () => {
+  it('cancels a failed collection locally without creating an EcoRota request', async () => {
     gateway.failCreate = true
     const response = await app.inject({
       method: 'POST', url: '/api/v1/collections', headers: auth(), payload: input(),
     })
     gateway.failCreate = false
     const id = response.json().data.id as string
+    const createCalls = gateway.createCalls.length
     const cancel = await app.inject({
       method: 'POST', url: `/api/v1/collections/${id}/cancel`, headers: auth(),
     })
     expect(cancel.statusCode).toBe(200)
     expect(cancel.json().data.status).toBe('cancelled')
     const saved = await prisma.collection.findUniqueOrThrow({ where: { id } })
-    expect(saved.ecorotaRequestId).toBeTruthy()
-    expect(gateway.requests.get(saved.ecorotaRequestId!)?.status).toBe('cancelled')
+    expect(saved.ecorotaRequestId).toBeNull()
+    expect(saved.nextAttemptAt).toBeNull()
+    expect(gateway.createCalls).toHaveLength(createCalls)
+    await service.processDue()
+    expect(gateway.createCalls).toHaveLength(createCalls)
+  })
+
+  it('waits for a live dispatch lock before cancelling a failed collection', async () => {
+    gateway.failCreate = true
+    const response = await app.inject({
+      method: 'POST', url: '/api/v1/collections', headers: auth(), payload: input(),
+    })
+    gateway.failCreate = false
+    const id = response.json().data.id as string
+    await prisma.collection.update({ where: { id }, data: { dispatchLockedAt: new Date() } })
+    const locked = await app.inject({
+      method: 'POST', url: `/api/v1/collections/${id}/cancel`, headers: auth(),
+    })
+    expect(locked.statusCode).toBe(409)
+    await prisma.collection.update({
+      where: { id }, data: { dispatchLockedAt: new Date(Date.now() - 120_000) },
+    })
+    const cancelled = await app.inject({
+      method: 'POST', url: `/api/v1/collections/${id}/cancel`, headers: auth(),
+    })
+    expect(cancelled.statusCode).toBe(200)
+    expect(cancelled.json().data.status).toBe('cancelled')
+  })
+
+  it('does not restore a cancelled status when an expired dispatch finishes late', async () => {
+    const response = await app.inject({
+      method: 'POST', url: '/api/v1/collections', headers: auth(),
+      payload: input({ scheduledAt: new Date(Date.now() + 60_000).toISOString() }),
+    })
+    const id = response.json().data.id as string
+    await prisma.collection.update({
+      where: { id }, data: { scheduledAt: new Date(Date.now() - 1_000) },
+    })
+    let release: (() => void) | undefined
+    let started: (() => void) | undefined
+    const startedPromise = new Promise<void>((resolve) => { started = resolve })
+    const releasePromise = new Promise<void>((resolve) => { release = resolve })
+    const realCreate = gateway.createRequest.bind(gateway)
+    const create = vi.spyOn(gateway, 'createRequest').mockImplementationOnce(async (request) => {
+      started?.()
+      await releasePromise
+      return realCreate(request)
+    })
+    try {
+      const dispatch = service.dispatch(id)
+      await startedPromise
+      await prisma.collection.update({
+        where: { id }, data: { dispatchLockedAt: new Date(Date.now() - 120_000) },
+      })
+      const cancel = await app.inject({
+        method: 'POST', url: `/api/v1/collections/${id}/cancel`, headers: auth(),
+      })
+      expect(cancel.statusCode).toBe(200)
+      release?.()
+      await dispatch
+      expect((await prisma.collection.findUniqueOrThrow({ where: { id } })).status).toBe('cancelled')
+    } finally {
+      release?.()
+      create.mockRestore()
+    }
+  })
+
+  it('returns the persisted collection if EcoRota accepted but saving its id fails', async () => {
+    const realUpdateMany = prisma.collection.updateMany.bind(prisma.collection)
+    const updateMany = vi.spyOn(prisma.collection, 'updateMany')
+      .mockImplementationOnce(realUpdateMany)
+      .mockRejectedValueOnce(new Error('Database write failed'))
+    try {
+      const countBefore = await prisma.collection.count({ where: { residentId } })
+      const response = await app.inject({
+        method: 'POST', url: '/api/v1/collections', headers: auth(), payload: input(),
+      })
+      expect(response.statusCode).toBe(201)
+      const id = response.json().data.id as string
+      expect(response.json().data.status).toBe('integration_failed')
+      expect(await prisma.collection.count({ where: { residentId } })).toBe(countBefore + 1)
+      const saved = await prisma.collection.findUniqueOrThrow({ where: { id } })
+      expect(saved.ecorotaRequestId).toBeNull()
+      expect(saved.dispatchLockedAt).not.toBeNull()
+      const remote = [...gateway.requests.values()].find(
+        (request) => request.externalReference === saved.externalReference,
+      )
+      expect(remote).toBeDefined()
+      await prisma.collection.update({
+        where: { id }, data: { dispatchLockedAt: new Date(Date.now() - 120_000) },
+      })
+      await service.processDue()
+      const recovered = await prisma.collection.findUniqueOrThrow({ where: { id } })
+      expect(recovered.ecorotaRequestId).toBe(remote?.id)
+      expect(recovered.status).toBe('pending')
+      expect([...gateway.requests.values()].filter(
+        (request) => request.externalReference === saved.externalReference,
+      )).toHaveLength(1)
+    } finally {
+      updateMany.mockRestore()
+    }
   })
 
   it('uses the locally recorded status to prevent late cancellation', async () => {
