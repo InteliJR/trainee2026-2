@@ -2,7 +2,7 @@
 
 :root {
   font-family: var(--font-body);
-  color: var(--color-forest);
+  color: var(--color-ink);
   background: var(--color-paper);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -11,9 +11,10 @@
   --color-leaf: #6e8f4c;
   --color-canopy: #254f3b;
   --color-paper: #f1ecdd;
-  --color-amber: #a96b16;
-  --color-rust: #a34b36;
-  --color-success: #39744b;
+  --color-amber: #9c6b34;
+  --color-rust: #b85c2e;
+  --color-success: #3d7a4e;
+  --color-ink: #1a1f1b;
   --color-border: #d5cfbe;
   --radius: 6px;
   --font-display: 'Space Grotesk', sans-serif;
