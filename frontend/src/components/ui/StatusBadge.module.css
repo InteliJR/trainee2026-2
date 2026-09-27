@@ -1,0 +1,65 @@
+.badge {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.scheduled {
+  background: color-mix(in srgb, var(--color-canopy), transparent 90%);
+  color: var(--color-canopy);
+}
+
+.pending {
+  background: color-mix(in srgb, var(--color-amber), transparent 88%);
+  color: var(--color-amber);
+}
+
+.assigned {
+  background: color-mix(in srgb, var(--color-leaf), transparent 86%);
+  color: var(--color-canopy);
+}
+
+.inService {
+  background: color-mix(in srgb, var(--color-leaf), transparent 86%);
+  color: var(--color-canopy);
+}
+
+.completed {
+  background: color-mix(in srgb, var(--color-success), transparent 88%);
+  color: var(--color-success);
+}
+
+.cancelled,
+.integrationFailed {
+  background: color-mix(in srgb, var(--color-rust), transparent 88%);
+  color: var(--color-rust);
+}
+
+.activeDot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor, transparent 84%);
+}
+
+.failureIcon {
+  display: inline-grid;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+}
