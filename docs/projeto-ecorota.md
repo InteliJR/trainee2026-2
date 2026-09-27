@@ -199,12 +199,45 @@ trainee2026-2/
 
 ## 8. Modelagem do banco de dados
 
+O schema Prisma em `backend/prisma/schema.prisma` contém usuários (com perfil
+`resident` ou `collector`), sessões de autenticação, coletores customizados,
+pontos da EcoRota, coletas, materiais, recompensas e movimentações de pontos.
+A migração inicial está em `backend/prisma/migrations`.
+
+Cada coleta pertence a um morador e a um ponto; materiais são linhas separadas
+com tipo, quantidade e unidade. `externalReference` é única e derivada do UUID
+local. `ecorotaRequestId` guarda o vínculo com a solicitação externa. O
+histórico é consultado por morador, ordenado por criação e paginado por cursor.
+A tabela de movimentações possui restrição única por coleta e motivo. O serviço
+de crédito usa uma transação e essa restrição para registrar, no máximo uma
+vez, os pontos de cada coleta concluída; a quantidade de pontos permanece
+indefinida até a decisão da tarefa 14.
+
 ## 9. Integração EcoRota
+
+`EcoRotaGateway` define `listPoints`, `createRequest`, `getRequest` e
+`cancelRequest`. Este branch define o contrato e um adaptador temporário que
+responde 503; o cliente HTTP, a credencial e a sincronização externa ficam
+para a implementação do Glauco. Os pontos exibidos pelas rotas do morador
+são lidos do banco local.
+
+A criação salva a coleta e os materiais antes de chamar o gateway. Quando
+`scheduledAt` é futuro, o processo do servidor tenta enviar a solicitação
+somente após esse horário. Cada tentativa usa `collection:<id-local>` como
+referência estável. O serviço grava o `ecorotaRequestId` retornado pelo
+gateway e mantém falhas locais para nova tentativa. Se o envio anterior tiver
+resultado incerto, o cancelamento usa a mesma referência para reconciliar a
+solicitação antes de cancelar.
+
+Consulta e histórico do morador usam o estado local. A atualização após
+mudanças na EcoRota, como atribuição e conclusão, depende da sincronização
+a ser implementada pelo Glauco. A proteção contra créditos duplicados já
+existe, mas o cálculo e o disparo da pontuação aguardam a decisão da tarefa 14.
 
 ## 10. Contrato da API interna
 
 Os schemas Zod em `backend/src/contracts` são a fonte executável deste contrato.
-A especificação OpenAPI será consolidada na etapa de documentação das rotas.
+O guia operacional para ambos os front-ends está em `docs/api-frontends.md`.
 
 ### 10.1 Convenções
 
@@ -225,7 +258,7 @@ A especificação OpenAPI será consolidada na etapa de documentação das rotas
 | GET | `/api/v1/collection-points/:id` | Autenticado | Detalha um ponto |
 | POST | `/api/v1/collections` | Morador | Cria coleta imediata ou agendada |
 | GET | `/api/v1/collections` | Morador | Histórico próprio com cursor |
-| GET | `/api/v1/collections/:id` | Envolvido | Detalha coleta própria ou atribuída |
+| GET | `/api/v1/collections/:id` | Morador proprietário; coletor pendente | Detalha coleta própria |
 | POST | `/api/v1/collections/:id/cancel` | Morador proprietário | Cancela antes de `in_service` |
 | PATCH | `/api/v1/collectors/me/availability` | Coletor | Altera disponibilidade |
 | GET | `/api/v1/collectors/me/assignment` | Coletor | Coleta atribuída ou `data: null` |
@@ -233,8 +266,9 @@ A especificação OpenAPI será consolidada na etapa de documentação das rotas
 | GET | `/api/v1/rewards/balance` | Morador | Saldo de pontos |
 | GET | `/api/v1/rewards/transactions` | Morador | Extrato com cursor |
 
-Criação retorna HTTP 201. As outras operações bem-sucedidas retornam HTTP 200.
-Cancelamento e conclusão devolvem a coleta atualizada.
+As rotas de coletor e recompensas nesta tabela ainda são contratos planejados,
+não rotas disponíveis. Criação retorna HTTP 201; outras operações implementadas
+retornam HTTP 200. Cancelamento devolve a coleta atualizada.
 
 ### 10.3 Autenticação
 
@@ -279,8 +313,10 @@ Materiais: `paper`, `plastic`, `glass`, `metal`, `electronics` e
 ~~~
 
 Sem `scheduledAt`, a solicitação é enviada imediatamente. Com data futura, fica
-`scheduled` localmente e só é enviada à EcoRota no horário previsto. Para mudar a
-data no MVP, o morador cancela e cria outra coleta.
+`scheduled` localmente e só é enviada à EcoRota no horário previsto. Se o
+envio imediato falhar, a API devolve HTTP 201 com estado `integration_failed`
+e mantém os dados locais para nova tentativa. Para mudar a data no MVP, o
+morador cancela e cria outra coleta.
 
 Estados públicos:
 
