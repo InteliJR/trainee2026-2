@@ -29,6 +29,7 @@ export function useLiveResource<T>(
   const [requestVersion, setRequestVersion] = useState(0)
   const dataRef = useRef<T | null>(null)
   const shouldSyncRef = useRef(shouldSync)
+  const stopSyncRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     dataRef.current = data
@@ -57,6 +58,7 @@ export function useLiveResource<T>(
     const stop = () => {
       stopSync?.()
       stopSync = null
+      stopSyncRef.current = null
     }
 
     async function refresh(silent: boolean) {
@@ -91,6 +93,7 @@ export function useLiveResource<T>(
       }
       void refresh(true)
     })
+    stopSyncRef.current = stopSync
     void refresh(false)
 
     return () => {
@@ -98,6 +101,13 @@ export function useLiveResource<T>(
       stop()
     }
   }, [load, requestVersion, setData, strategy])
+
+  useEffect(() => {
+    if (data !== null && !shouldSync(data)) {
+      stopSyncRef.current?.()
+      stopSyncRef.current = null
+    }
+  }, [data, shouldSync])
 
   const refetch = useCallback(() => {
     setRequestVersion((version) => version + 1)
