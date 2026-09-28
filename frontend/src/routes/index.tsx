@@ -39,7 +39,13 @@ export const router = createBrowserRouter([
       },
       {
         element: <ProtectedRoute allowedRoles={['collector']} />,
-        children: [{ path: 'coletor', element: <ColetorHome /> }],
+        children: [
+          {
+            path: 'coletor',
+            element: <Outlet />,
+            children: [{ index: true, element: <ColetorHome /> }],
+          },
+        ],
       },
     ],
   },
