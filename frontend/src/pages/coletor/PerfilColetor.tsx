@@ -1,4 +1,4 @@
-import { Card, ErrorState, Loading } from '../../components/ui'
+import { Button, Card, ErrorState, Loading } from '../../components/ui'
 import CollectorStatusBadge from '../../components/collectors/CollectorStatusBadge'
 import { useAuth } from '../../contexts/useAuth'
 import { useCollectorProfile } from '../../hooks/useCollectorProfile'
@@ -6,7 +6,15 @@ import styles from './PerfilColetor.module.css'
 
 export default function PerfilColetor() {
   const { user } = useAuth()
-  const { collector, status, error, refetch } = useCollectorProfile()
+  const {
+    collector,
+    status,
+    error,
+    updating,
+    updateError,
+    refetch,
+    setAvailability,
+  } = useCollectorProfile()
 
   if (status === 'idle' || status === 'loading') {
     return <Loading label="Carregando perfil do coletor" />
@@ -46,6 +54,24 @@ export default function PerfilColetor() {
         <div className={styles.availability}>
           <span>Disponibilidade</span>
           <strong>{collector.available ? 'Disponível' : 'Indisponível'}</strong>
+        </div>
+        {updateError && (
+          <p className={styles.updateError} role="alert">
+            {updateError.message}
+          </p>
+        )}
+        <div className={styles.actions}>
+          <Button
+            variant={collector.available ? 'secondary' : 'primary'}
+            disabled={updating}
+            onClick={() => void setAvailability(!collector.available)}
+          >
+            {updating
+              ? 'Atualizando...'
+              : collector.available
+                ? 'Ficar indisponível'
+                : 'Ficar disponível'}
+          </Button>
         </div>
       </Card>
     </section>
