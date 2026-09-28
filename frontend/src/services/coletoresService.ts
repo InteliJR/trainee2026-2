@@ -7,6 +7,7 @@ import type {
 import type { DataResponse } from '../types/common'
 import { get, patch } from './api'
 import { USE_MOCKS } from './config'
+import { advanceMockCollectorArrival } from './coletasService'
 import { mockCollections } from './mocks/collections'
 import { mockCollectors } from './mocks/collectors'
 
@@ -41,5 +42,7 @@ export async function getCurrentAssignment(): Promise<AssignmentResponse> {
     ({ status, collector }) =>
       (status === 'assigned' || status === 'in_service') && collector !== null,
   )
-  return { data: assignment ?? null }
+  return {
+    data: assignment ? advanceMockCollectorArrival(assignment) : null,
+  }
 }
