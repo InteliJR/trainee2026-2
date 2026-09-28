@@ -2,6 +2,8 @@ import { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { MaterialType, MaterialUnit } from '../../types'
 import { Card, ErrorState, Loading, StatusBadge } from '../../components/ui'
+import AssignmentActions from '../../components/collectors/AssignmentActions'
+import { useCompleteCollection } from '../../hooks/useCompleteCollection'
 import { useLiveResource } from '../../hooks/useLiveResource'
 import { getCollection } from '../../services/coletasService'
 import { createPollingStrategy } from '../../services/sync'
@@ -25,7 +27,15 @@ export default function DetalheAtendimento() {
     status,
     error,
     refetch,
+    setData,
   } = useLiveResource(loadCollection, pollingStrategy)
+  const {
+    completing,
+    error: completionError,
+    errorCode,
+    complete,
+    clearError,
+  } = useCompleteCollection()
 
   if (status === 'idle' || (status === 'loading' && collection === null)) {
     return <Loading label="Carregando detalhes do atendimento" />
@@ -46,6 +56,21 @@ export default function DetalheAtendimento() {
 
   const collectionDate = collection.scheduledAt ?? collection.createdAt
 
+  async function handleComplete() {
+    if (!collection) return
+    const result = await complete(collection.id)
+    if (result.collection) {
+      setData(result.collection)
+      return
+    }
+    if (
+      result.errorCode === 'COLLECTION_NOT_COMPLETABLE' ||
+      result.errorCode === 'NO_ACTIVE_ASSIGNMENT'
+    ) {
+      refetch()
+    }
+  }
+
   return (
     <section className={styles.page}>
       <Link className={styles.backLink} to="/coletor">
@@ -64,6 +89,27 @@ export default function DetalheAtendimento() {
           }
           onRetry={refetch}
         />
+      )}
+
+      <AssignmentActions
+        status={collection.status}
+        completing={completing}
+        error={completionError}
+        onComplete={() => void handleComplete()}
+        onClearError={clearError}
+      />
+      {collection.status === 'completed' && (
+        <div className={styles.completionSuccess} role="status">
+          <p>Coleta concluída</p>
+          <Link className={styles.backLink} to="/coletor">
+            Ver próxima coleta
+          </Link>
+        </div>
+      )}
+      {errorCode === 'NO_ACTIVE_ASSIGNMENT' && (
+        <Link className={styles.backLink} to="/coletor">
+          Voltar à coleta atual
+        </Link>
       )}
 
       <Card className={styles.card}>

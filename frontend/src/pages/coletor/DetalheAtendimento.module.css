@@ -105,6 +105,20 @@
   font-size: 13px;
 }
 
+.completionSuccess {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-success);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.completionSuccess p {
+  margin: 0;
+}
+
 @media (max-width: 600px) {
   .page {
     gap: 20px;

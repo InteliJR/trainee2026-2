@@ -9,7 +9,10 @@ export type UseCompleteCollectionResult = {
   completing: boolean
   error: string | null
   errorCode: ErrorCode | null
-  complete: (id: string) => Promise<Collection | null>
+  complete: (id: string) => Promise<{
+    collection: Collection | null
+    errorCode: ErrorCode | null
+  }>
   clearError: () => void
 }
 
@@ -18,18 +21,21 @@ export function useCompleteCollection(): UseCompleteCollectionResult {
   const [error, setError] = useState<string | null>(null)
   const [errorCode, setErrorCode] = useState<ErrorCode | null>(null)
 
-  async function complete(id: string): Promise<Collection | null> {
+  async function complete(
+    id: string,
+  ): Promise<{ collection: Collection | null; errorCode: ErrorCode | null }> {
     setCompleting(true)
     setError(null)
     setErrorCode(null)
 
     try {
       const response = await completeCollection(id)
-      return response.data
+      return { collection: response.data, errorCode: null }
     } catch (cause) {
       setError(getErrorMessage(cause, 'Não foi possível concluir a coleta.'))
-      setErrorCode(cause instanceof ApiError ? cause.code : null)
-      return null
+      const nextErrorCode = cause instanceof ApiError ? cause.code : null
+      setErrorCode(nextErrorCode)
+      return { collection: null, errorCode: nextErrorCode }
     } finally {
       setCompleting(false)
     }
