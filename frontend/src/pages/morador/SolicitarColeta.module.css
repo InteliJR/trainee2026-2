@@ -1,0 +1,111 @@
+.page {
+  display: grid;
+  gap: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 36px 24px 52px;
+}
+
+.backLink {
+  color: var(--color-canopy);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.heading {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.heading h1,
+.heading p {
+  margin: 0;
+}
+
+.heading h1 {
+  color: var(--color-forest);
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+}
+
+.heading p:last-child {
+  color: var(--color-canopy);
+  line-height: 1.5;
+}
+
+.eyebrow {
+  color: var(--color-leaf);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.form {
+  display: grid;
+  gap: 22px;
+}
+
+.point {
+  display: grid;
+  gap: 5px;
+  border-left: 3px solid var(--color-leaf);
+  padding: 5px 0 5px 14px;
+}
+
+.fieldLabel {
+  color: var(--color-canopy);
+  font-size: 13px;
+}
+
+.point strong {
+  color: var(--color-forest);
+  font-family: var(--font-display);
+  font-size: 17px;
+}
+
+.materialSection,
+.materials {
+  display: grid;
+  gap: 14px;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sectionHeading h2 {
+  margin: 0;
+  color: var(--color-forest);
+  font-family: var(--font-display);
+  font-size: 19px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border);
+  padding-top: 18px;
+}
+
+@media (max-width: 600px) {
+  .page {
+    gap: 20px;
+    padding: 28px 18px 40px;
+  }
+
+  .heading h1 {
+    font-size: 25px;
+  }
+
+  .sectionHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
