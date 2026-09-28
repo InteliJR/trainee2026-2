@@ -1,0 +1,117 @@
+.page {
+  display: grid;
+  gap: 24px;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 36px 24px 52px;
+}
+
+.backLink {
+  color: var(--color-canopy);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.heading {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 20px;
+}
+
+.heading h1 {
+  margin: 0;
+  color: var(--color-forest);
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-leaf);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.card {
+  display: grid;
+  gap: 22px;
+}
+
+.section {
+  display: grid;
+  gap: 10px;
+}
+
+.section + .section {
+  border-top: 1px solid var(--color-border);
+  padding-top: 18px;
+}
+
+.section h2,
+.section p {
+  margin: 0;
+}
+
+.section h2 {
+  color: var(--color-canopy);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.section > p {
+  color: var(--color-ink);
+  line-height: 1.5;
+}
+
+.materials {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.materials li {
+  display: grid;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-border);
+  padding: 8px 0;
+}
+
+.materials li:last-child {
+  border-bottom: 0;
+}
+
+.materials li > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--color-ink);
+}
+
+.materials li > div span {
+  white-space: nowrap;
+}
+
+.materials li > p {
+  color: var(--color-canopy);
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .page {
+    gap: 20px;
+    padding: 28px 18px 40px;
+  }
+
+  .heading h1 {
+    font-size: 25px;
+  }
+}

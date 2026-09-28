@@ -1,26 +1,11 @@
-import type { Collection, MaterialType, MaterialUnit } from '../../types'
+import type { Collection } from '../../types'
 import { Card, StatusBadge } from '../ui'
+import {
+  collectionDateFormatters,
+  materialLabels,
+  unitLabels,
+} from '../../utils/collection-format'
 import styles from './CollectionHistoryItem.module.css'
-
-const materialLabels: Record<MaterialType, string> = {
-  paper: 'Papel',
-  plastic: 'Plástico',
-  glass: 'Vidro',
-  metal: 'Metal',
-  electronics: 'Eletrônicos',
-  other: 'Outro',
-}
-
-const unitLabels: Record<MaterialUnit, string> = {
-  kg: 'kg',
-  units: 'unidades',
-  bags: 'sacos',
-}
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-})
 
 export type CollectionHistoryItemProps = {
   collection: Collection
@@ -54,7 +39,7 @@ export default function CollectionHistoryItem({
 
       <div className={styles.footer}>
         <time dateTime={collectionDate}>
-          {dateFormatter.format(new Date(collectionDate))}
+          {collectionDateFormatters.medium.format(new Date(collectionDate))}
         </time>
         {collection.status === 'completed' &&
           collection.pointsAwarded !== null && (

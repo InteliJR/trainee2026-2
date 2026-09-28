@@ -1,75 +1,47 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import type { Collection, MaterialType, MaterialUnit } from '../../types'
+import type { CollectionStatus } from '../../types'
 import { Button, ErrorState, Loading, StatusBadge } from '../../components/ui'
 import { ApiError } from '../../services/api-error'
 import { cancelCollection, getCollection } from '../../services/coletasService'
+import { useLiveResource } from '../../hooks/useLiveResource'
+import { createPollingStrategy } from '../../services/sync'
+import {
+  collectionDateFormatters,
+  materialLabels,
+  unitLabels,
+} from '../../utils/collection-format'
 import styles from './AcompanharColeta.module.css'
 
-const materialLabels: Record<MaterialType, string> = {
-  paper: 'Papel',
-  plastic: 'Plástico',
-  glass: 'Vidro',
-  metal: 'Metal',
-  electronics: 'Eletrônicos',
-  other: 'Outro',
-}
-
-const unitLabels: Record<MaterialUnit, string> = {
-  kg: 'kg',
-  units: 'unidades',
-  bags: 'sacos',
-}
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
-  dateStyle: 'long',
-  timeStyle: 'short',
-})
-
-type LoadStatus = 'loading' | 'error' | 'success'
+const pollingStrategy = createPollingStrategy()
+const terminalStatuses: CollectionStatus[] = [
+  'completed',
+  'cancelled',
+  'integration_failed',
+]
 
 export default function AcompanharColeta() {
   const { id = '' } = useParams()
-  const [collection, setCollection] = useState<Collection | null>(null)
-  const [status, setStatus] = useState<LoadStatus>('loading')
-  const [error, setError] = useState<Error | null>(null)
+  const loadCollection = useCallback(
+    async () => (await getCollection(id)).data,
+    [id],
+  )
+  const {
+    data: collection,
+    status,
+    error,
+    refetch,
+    setData,
+  } = useLiveResource(
+    loadCollection,
+    pollingStrategy,
+    (current) => !terminalStatuses.includes(current.status),
+  )
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [cannotCancel, setCannotCancel] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
-  const [requestVersion, setRequestVersion] = useState(0)
 
-  const refetch = useCallback((silent = false) => {
-    if (!silent) setStatus('loading')
-    setError(null)
-    setRequestVersion((version) => version + 1)
-  }, [])
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => refetch(true), 15_000)
-    return () => window.clearInterval(intervalId)
-  }, [refetch])
-
-  useEffect(() => {
-    let active = true
-
-    getCollection(id)
-      .then((response) => {
-        if (!active) return
-        setCollection(response.data)
-        setStatus('success')
-      })
-      .catch((cause: unknown) => {
-        if (!active) return
-        setError(cause instanceof Error ? cause : new Error(String(cause)))
-        setStatus('error')
-      })
-
-    return () => {
-      active = false
-    }
-  }, [id, requestVersion])
-
-  if (status === 'loading') {
+  if (status === 'idle' || (status === 'loading' && !collection)) {
     return <Loading label="Carregando acompanhamento da coleta" />
   }
 
@@ -97,7 +69,7 @@ export default function AcompanharColeta() {
     setIsCancelling(true)
     try {
       const response = await cancelCollection(collection.id)
-      setCollection(response.data)
+      setData(response.data)
     } catch (cause) {
       if (
         cause instanceof ApiError &&
@@ -169,7 +141,7 @@ export default function AcompanharColeta() {
             </dt>
             <dd>
               <time dateTime={collectionDate}>
-                {dateFormatter.format(new Date(collectionDate))}
+                {collectionDateFormatters.long.format(new Date(collectionDate))}
               </time>
             </dd>
           </div>
