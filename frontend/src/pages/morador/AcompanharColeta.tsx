@@ -38,11 +38,16 @@ export default function AcompanharColeta() {
   const [isCancelling, setIsCancelling] = useState(false)
   const [requestVersion, setRequestVersion] = useState(0)
 
-  const refetch = useCallback(() => {
-    setStatus('loading')
+  const refetch = useCallback((silent = false) => {
+    if (!silent) setStatus('loading')
     setError(null)
     setRequestVersion((version) => version + 1)
   }, [])
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => refetch(true), 15_000)
+    return () => window.clearInterval(intervalId)
+  }, [refetch])
 
   useEffect(() => {
     let active = true
