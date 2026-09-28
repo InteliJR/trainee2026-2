@@ -101,6 +101,15 @@ export async function cancelCollection(
     )
   }
   const collection = findMockCollection(id)
+  if (!['scheduled', 'pending', 'assigned'].includes(collection.status)) {
+    throw new ApiError({
+      code: 'COLLECTION_NOT_CANCELLABLE',
+      message: 'Esta coleta não pode mais ser cancelada.',
+      requestId: 'mock',
+      status: 409,
+      details: { status: collection.status },
+    })
+  }
   collection.status = 'cancelled'
   collection.updatedAt = new Date().toISOString()
   return { data: collection }
@@ -115,6 +124,15 @@ export async function completeCollection(
     )
   }
   const collection = findMockCollection(id)
+  if (collection.status !== 'in_service') {
+    throw new ApiError({
+      code: 'COLLECTION_NOT_COMPLETABLE',
+      message: 'A coleta só pode ser concluída durante o atendimento.',
+      requestId: 'mock',
+      status: 409,
+      details: { status: collection.status },
+    })
+  }
   collection.status = 'completed'
   collection.pointsAwarded = collection.pointsAwarded ?? 15
   collection.updatedAt = new Date().toISOString()
