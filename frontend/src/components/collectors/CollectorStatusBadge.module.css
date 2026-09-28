@@ -1,0 +1,31 @@
+.badge {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.idle {
+  background: color-mix(in srgb, var(--color-success), transparent 88%);
+  color: var(--color-success);
+}
+
+.moving {
+  background: color-mix(in srgb, var(--color-leaf), transparent 86%);
+  color: var(--color-canopy);
+}
+
+.collecting {
+  background: color-mix(in srgb, var(--color-amber), transparent 88%);
+  color: var(--color-amber);
+}
+
+.unavailable {
+  background: color-mix(in srgb, var(--color-rust), transparent 88%);
+  color: var(--color-rust);
+}
