@@ -12,6 +12,9 @@ import { mockUser } from './mocks/auth'
 import { mockCollectionPoints } from './mocks/collection-points'
 import { mockCollections } from './mocks/collections'
 
+const collectorArrivalDelayMs = 20_000
+const assignedReadAt = new Map<string, number>()
+
 function findMockCollection(id: string): Collection {
   const collection = mockCollections.find((item) => item.id === id)
   if (!collection) {
@@ -20,6 +23,29 @@ function findMockCollection(id: string): Collection {
       message: 'Collection not found',
       requestId: 'mock',
     })
+  }
+  return collection
+}
+
+export function advanceMockCollectorArrival(
+  collection: Collection,
+): Collection {
+  if (!USE_MOCKS || collection.status !== 'assigned') {
+    assignedReadAt.delete(collection.id)
+    return collection
+  }
+
+  const now = Date.now()
+  const firstReadAt = assignedReadAt.get(collection.id)
+  if (firstReadAt === undefined) {
+    assignedReadAt.set(collection.id, now)
+    return collection
+  }
+
+  if (now - firstReadAt >= collectorArrivalDelayMs) {
+    collection.status = 'in_service'
+    collection.updatedAt = new Date(now).toISOString()
+    assignedReadAt.delete(collection.id)
   }
   return collection
 }
@@ -87,9 +113,10 @@ export async function listCollections(
 export async function getCollection(
   id: string,
 ): Promise<DataResponse<Collection>> {
-  return USE_MOCKS
-    ? { data: findMockCollection(id) }
-    : get<DataResponse<Collection>>(`/collections/${encodeURIComponent(id)}`)
+  if (USE_MOCKS) {
+    return { data: advanceMockCollectorArrival(findMockCollection(id)) }
+  }
+  return get<DataResponse<Collection>>(`/collections/${encodeURIComponent(id)}`)
 }
 
 export async function cancelCollection(
