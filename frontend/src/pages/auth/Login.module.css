@@ -1,0 +1,80 @@
+.page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 28px 18px;
+  background: var(--color-paper);
+}
+
+.panel {
+  display: grid;
+  width: min(100%, 440px);
+  gap: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 36px;
+  background: color-mix(in srgb, var(--color-paper), white 35%);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-forest);
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.brandMark {
+  display: grid;
+  width: 34px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: var(--radius);
+  background: var(--color-forest);
+  color: var(--color-paper);
+}
+
+.heading,
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.heading h1,
+.heading p {
+  margin: 0;
+}
+
+.heading h1 {
+  color: var(--color-forest);
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.heading p:last-child {
+  color: var(--color-canopy);
+  line-height: 1.5;
+}
+
+.eyebrow {
+  color: var(--color-leaf);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-rust);
+  font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  .panel {
+    gap: 26px;
+    padding: 26px 22px;
+  }
+}
