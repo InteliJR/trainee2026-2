@@ -18,6 +18,10 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <MoradorHome /> },
           { path: 'historico', element: <HistoricoColetas /> },
+          {
+            path: 'solicitar/:pontoId',
+            element: <Navigate to="/morador" replace />,
+          },
         ],
       },
       {
