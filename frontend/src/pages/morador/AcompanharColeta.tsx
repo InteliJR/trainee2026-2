@@ -11,6 +11,7 @@ import {
   materialLabels,
   unitLabels,
 } from '../../utils/collection-format'
+import { getErrorMessage } from '../../utils/error-messages'
 import styles from './AcompanharColeta.module.css'
 
 const pollingStrategy = createPollingStrategy()
@@ -79,9 +80,7 @@ export default function AcompanharColeta() {
         setCancelError('Esta coleta não pode mais ser cancelada.')
       } else {
         setCancelError(
-          cause instanceof Error
-            ? cause.message
-            : 'Não foi possível cancelar a coleta.',
+          getErrorMessage(cause, 'Não foi possível cancelar a coleta.'),
         )
       }
     } finally {
