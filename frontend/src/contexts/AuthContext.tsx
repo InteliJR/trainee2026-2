@@ -4,6 +4,7 @@ import { authContext } from './auth-context-types'
 import type { AuthStatus } from './auth-context-types'
 import { getCurrentUser, login as loginService } from '../services/authService'
 import { clearToken, getToken } from '../services/authStorage'
+import { registerUnauthorizedHandler } from '../services/api'
 
 export type AuthProviderProps = {
   children: ReactNode
@@ -36,6 +37,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       active = false
     }
   }, [])
+
+  useEffect(
+    () =>
+      registerUnauthorizedHandler(() => {
+        clearToken()
+        setUser(null)
+        setStatus('unauthenticated')
+        window.dispatchEvent(new Event('ecorota:unauthorized'))
+      }),
+    [],
+  )
 
   async function login(input: LoginInput): Promise<User> {
     const response = await loginService(input)

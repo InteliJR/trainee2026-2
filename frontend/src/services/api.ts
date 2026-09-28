@@ -1,9 +1,18 @@
-import { getToken } from './authStorage'
+import { clearToken, getToken } from './authStorage'
 import { ApiError } from './api-error'
 import type { ErrorCode, ErrorResponse } from '../types/common'
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333'
 export const DEFAULT_TIMEOUT_MS = 10_000
+
+let unauthorizedHandler: (() => void) | null = null
+
+export function registerUnauthorizedHandler(handler: () => void): () => void {
+  unauthorizedHandler = handler
+  return () => {
+    if (unauthorizedHandler === handler) unauthorizedHandler = null
+  }
+}
 
 export type RequestOptions = Omit<RequestInit, 'body'> & {
   body?: unknown
@@ -110,6 +119,10 @@ export async function request<T>(
     const code = errorCodes.includes(errorBody?.code as ErrorCode)
       ? (errorBody?.code as ErrorCode)
       : 'INTERNAL_ERROR'
+    if (response.status === 401 || code === 'UNAUTHORIZED') {
+      clearToken()
+      unauthorizedHandler?.()
+    }
     throw new ApiError({
       code,
       message:
