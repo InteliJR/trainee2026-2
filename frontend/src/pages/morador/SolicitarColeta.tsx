@@ -180,7 +180,7 @@ export default function SolicitarColeta() {
         <p>Informe os materiais e escolha quando a coleta deve acontecer.</p>
       </header>
 
-      <form className={styles.form} onSubmit={handleSubmit}>
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
         {submitError &&
           !(
             submitError instanceof ApiError &&
