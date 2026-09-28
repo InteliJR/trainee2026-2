@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { Collection, MaterialType, MaterialUnit } from '../../types'
-import { ErrorState, Loading, StatusBadge } from '../../components/ui'
-import { getCollection } from '../../services/coletasService'
+import { Button, ErrorState, Loading, StatusBadge } from '../../components/ui'
+import { ApiError } from '../../services/api-error'
+import { cancelCollection, getCollection } from '../../services/coletasService'
 import styles from './AcompanharColeta.module.css'
 
 const materialLabels: Record<MaterialType, string> = {
@@ -32,6 +33,9 @@ export default function AcompanharColeta() {
   const [collection, setCollection] = useState<Collection | null>(null)
   const [status, setStatus] = useState<LoadStatus>('loading')
   const [error, setError] = useState<Error | null>(null)
+  const [cancelError, setCancelError] = useState<string | null>(null)
+  const [cannotCancel, setCannotCancel] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   const [requestVersion, setRequestVersion] = useState(0)
 
   const refetch = useCallback(() => {
@@ -77,7 +81,36 @@ export default function AcompanharColeta() {
 
   const showCollector =
     collection.status === 'assigned' || collection.status === 'in_service'
+  const canCancel = ['scheduled', 'pending', 'assigned'].includes(
+    collection.status,
+  )
   const collectionDate = collection.scheduledAt ?? collection.createdAt
+
+  async function handleCancel() {
+    if (!collection) return
+    setCancelError(null)
+    setIsCancelling(true)
+    try {
+      const response = await cancelCollection(collection.id)
+      setCollection(response.data)
+    } catch (cause) {
+      if (
+        cause instanceof ApiError &&
+        cause.code === 'COLLECTION_NOT_CANCELLABLE'
+      ) {
+        setCannotCancel(true)
+        setCancelError('Esta coleta não pode mais ser cancelada.')
+      } else {
+        setCancelError(
+          cause instanceof Error
+            ? cause.message
+            : 'Não foi possível cancelar a coleta.',
+        )
+      }
+    } finally {
+      setIsCancelling(false)
+    }
+  }
 
   return (
     <section className={styles.page}>
@@ -104,6 +137,23 @@ export default function AcompanharColeta() {
           ))}
         </ul>
       </section>
+
+      {canCancel && (
+        <section className={styles.cancelSection}>
+          {cancelError && (
+            <p className={styles.cancelNotice} role="alert">
+              {cancelError}
+            </p>
+          )}
+          <Button
+            variant="danger"
+            onClick={handleCancel}
+            disabled={isCancelling || cannotCancel}
+          >
+            {isCancelling ? 'Cancelando...' : 'Cancelar coleta'}
+          </Button>
+        </section>
+      )}
 
       <section className={styles.section}>
         <h2>Detalhes</h2>
