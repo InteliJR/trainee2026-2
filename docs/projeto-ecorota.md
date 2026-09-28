@@ -62,7 +62,7 @@ Pode acompanhar indicadores e o estado geral da operação. A inclusão desse pe
 
 ### 2.2 Decisões pendentes
 
-- Polling, WebSocket ou estratégia híbrida.
+- ~~Polling, WebSocket ou estratégia híbrida.~~ Decidido: polling do snapshot (ver `docs/integracao-ecorota.md`).
 - Inclusão do painel do gestor no MVP.
 - Uso de mapa ou somente lista para seleção dos pontos.
 - Evolução do modo de demonstração para JWT real após o MVP.
@@ -215,24 +215,25 @@ indefinida até a decisão da tarefa 14.
 
 ## 9. Integração EcoRota
 
-`EcoRotaGateway` define `listPoints`, `createRequest`, `getRequest` e
-`cancelRequest`. Este branch define o contrato e um adaptador temporário que
-responde 503; o cliente HTTP, a credencial e a sincronização externa ficam
-para a implementação do Glauco. Os pontos exibidos pelas rotas do morador
-são lidos do banco local.
+`EcoRotaGateway` define as operações usadas da API EcoRota. `EcoRotaHttpClient`
+implementa essa interface com a credencial da equipe, que fica só no back-end.
+Sem `ECOROTA_API_TOKEN`, um adaptador temporário responde 503. Os pontos
+exibidos pelas rotas do morador são lidos do banco local, preenchido pela
+sincronização. Detalhes, regras, erros e limitações estão em
+`docs/integracao-ecorota.md`.
 
 A criação salva a coleta e os materiais antes de chamar o gateway. Quando
 `scheduledAt` é futuro, o processo do servidor tenta enviar a solicitação
 somente após esse horário. Cada tentativa usa `collection:<id-local>` como
 referência estável. O serviço grava o `ecorotaRequestId` retornado pelo
 gateway e mantém falhas locais para nova tentativa. Se o envio anterior tiver
-resultado incerto, o cancelamento usa a mesma referência para reconciliar a
-solicitação antes de cancelar.
+resultado incerto, a sincronização usa a mesma referência para religar a
+solicitação existente, sem reenviá-la.
 
-Consulta e histórico do morador usam o estado local. A atualização após
-mudanças na EcoRota, como atribuição e conclusão, depende da sincronização
-a ser implementada pelo Glauco. A proteção contra créditos duplicados já
-existe, mas o cálculo e o disparo da pontuação aguardam a decisão da tarefa 14.
+Consulta e histórico do morador usam o estado local. Mudanças na EcoRota, como
+atribuição e conclusão, chegam por polling de `GET /v1/snapshot` a cada 5 s. A
+proteção contra créditos duplicados já existe, mas o cálculo e o disparo da
+pontuação aguardam a decisão da tarefa 14.
 
 ## 10. Contrato da API interna
 
@@ -266,8 +267,8 @@ O guia operacional para ambos os front-ends está em `docs/api-frontends.md`.
 | GET | `/api/v1/rewards/balance` | Morador | Saldo de pontos |
 | GET | `/api/v1/rewards/transactions` | Morador | Extrato com cursor |
 
-As rotas de coletor e recompensas nesta tabela ainda são contratos planejados,
-não rotas disponíveis. Criação retorna HTTP 201; outras operações implementadas
+As rotas de recompensas nesta tabela ainda são contratos planejados, não rotas
+disponíveis; `GET /collections/:id` segue exclusivo do morador. Criação retorna HTTP 201; outras operações implementadas
 retornam HTTP 200. Cancelamento devolve a coleta atualizada.
 
 ### 10.3 Autenticação

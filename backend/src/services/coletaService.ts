@@ -10,6 +10,8 @@ import {
 } from '../contracts/collections.js'
 import { AppError } from '../errors/app-error.js'
 import type { EcoRotaGateway, EcoRotaRequest } from '../integrations/ecorota.js'
+import { EcoRotaRejectedError } from '../integrations/ecorota-client.js'
+import { localCollectorId } from './ecorota-sync-service.js'
 import { PointService } from './pontosService.js'
 
 const collectionInclude = {
@@ -84,9 +86,11 @@ export class CollectionService {
       data: {
         ecorotaRequestId: remote.id,
         status: remote.status,
+        collectorId: await localCollectorId(this.prisma, remote.collectorId),
         integrationError: null,
         dispatchLockedAt: null,
         nextAttemptAt: null,
+        lastSyncedAt: new Date(),
       },
     })
     return this.record(id)
@@ -176,9 +180,11 @@ export class CollectionService {
       data: {
         ecorotaRequestId: remote.id,
         status: remote.status,
+        collectorId: await localCollectorId(this.prisma, remote.collectorId),
         integrationError: null,
         dispatchLockedAt: null,
         nextAttemptAt: null,
+        lastSyncedAt: new Date(),
       },
     })
   }
@@ -281,7 +287,71 @@ export class CollectionService {
       return publicCollection(await this.record(id))
     }
 
-    const remote = await this.ecorota.cancelRequest(record.ecorotaRequestId)
+    let remote: EcoRotaRequest
+    try {
+      remote = await this.ecorota.cancelRequest(record.ecorotaRequestId)
+    } catch (error) {
+      // EcoRota refuses once service started; the sync brings the new status.
+      if (error instanceof EcoRotaRejectedError && error.upstreamStatus === 409) {
+        throw new AppError({
+          code: 'COLLECTION_NOT_CANCELLABLE',
+          message: 'Collection cannot be cancelled in its current state',
+          statusCode: 409,
+          details: { upstreamCode: error.upstreamCode },
+        })
+      }
+      throw error
+    }
+    return publicCollection(await this.applyRemote(id, remote))
+  }
+
+  /** Current job of a custom collector, read from the synced local state. */
+  async assignmentFor(collectorUserId: string): Promise<Collection | null> {
+    const record = await this.prisma.collection.findFirst({
+      where: { collector: { userId: collectorUserId }, status: { in: ['assigned', 'in_service'] } },
+      include: collectionInclude,
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+    })
+    return record ? publicCollection(record) : null
+  }
+
+  async complete(collectorUserId: string, id: string): Promise<Collection> {
+    const record = await this.prisma.collection.findUnique({ where: { id }, include: collectionInclude })
+    if (!record) {
+      throw new AppError({ code: 'RESOURCE_NOT_FOUND', message: 'Collection not found', statusCode: 404 })
+    }
+    if (record.collector?.userId !== collectorUserId) {
+      throw new AppError({
+        code: 'FORBIDDEN',
+        message: 'Collection is not assigned to this collector',
+        statusCode: 403,
+      })
+    }
+    // Local status may lag the 5 s sync, so an `assigned` job is still sent and
+    // EcoRota decides whether the collector has arrived.
+    if (!record.ecorotaRequestId || !['assigned', 'in_service'].includes(record.status)) {
+      throw new AppError({
+        code: 'COLLECTION_NOT_COMPLETABLE',
+        message: 'Collection cannot be completed in its current state',
+        statusCode: 409,
+        details: { status: record.status },
+      })
+    }
+
+    let remote: EcoRotaRequest
+    try {
+      remote = await this.ecorota.completeRequest(record.ecorotaRequestId)
+    } catch (error) {
+      if (error instanceof EcoRotaRejectedError && [404, 409].includes(error.upstreamStatus)) {
+        throw new AppError({
+          code: 'COLLECTION_NOT_COMPLETABLE',
+          message: 'EcoRota did not accept the confirmation; the collector may not have arrived yet',
+          statusCode: 409,
+          details: { status: record.status, upstreamCode: error.upstreamCode },
+        })
+      }
+      throw error
+    }
     return publicCollection(await this.applyRemote(id, remote))
   }
 }

@@ -44,6 +44,9 @@ depende da integração EcoRota ou da regra de pontuação.
 | GET | `/collections` | Morador | `200`, histórico próprio paginado |
 | GET | `/collections/:id` | Morador proprietário | `200`, coleta própria |
 | POST | `/collections/:id/cancel` | Morador proprietário | `200`, coleta atualizada |
+| PATCH | `/collectors/me/availability` | Coletor | `200`, coletor atualizado |
+| GET | `/collectors/me/assignment` | Coletor | `200`, coleta atribuída ou `null` |
+| POST | `/collections/:id/complete` | Coletor atribuído | `200`, coleta concluída |
 
 ### Login para ambos os perfis
 
@@ -92,9 +95,9 @@ cadastro público nem JWT nesta etapa. `GET /auth/me` devolve apenas o objeto
 ```
 
 `coordinates` é `[longitude, latitude]`; `kind` pode ser `habitual` ou
-`additional`. A rota lê o banco local. O seed de usuários não inclui pontos;
-eles precisam ser carregados pela integração do Glauco. Enquanto isso, a lista
-pode estar vazia.
+`additional`. A rota lê o banco local, que a sincronização com a EcoRota
+preenche a cada 5 s. Sem `ECOROTA_API_TOKEN` no back-end, a lista pode estar
+vazia.
 
 ### Criar coleta
 
@@ -156,8 +159,10 @@ retorna 404. Exemplo do objeto em `data`:
 
 Estados possíveis: `scheduled`, `pending`, `assigned`, `in_service`,
 `completed`, `cancelled`, `integration_failed`. A consulta mostra o estado
-**local**. A atualização após mudanças externas depende da sincronização do
-Glauco.
+**local**, atualizado pela sincronização com a EcoRota a cada 5 s. Consultar a
+cada 5 s é suficiente para acompanhar atribuição e conclusão. `collector` só é
+preenchido para coletores da plataforma; coletores automáticos da EcoRota
+aparecem como `null`, mesmo com `status: "assigned"`.
 
 `GET /collections?limit=20&cursor=<cursor>&status=pending` lista apenas
 coletas do morador autenticado, da mais recente para a mais antiga. `cursor` e
@@ -167,31 +172,45 @@ coletas do morador autenticado, da mais recente para a mais antiga. `cursor` e
 `POST /collections/:id/cancel` não recebe corpo. Coletas `scheduled` ou
 `integration_failed` sem identificador externo são canceladas localmente, desde
 que o bloqueio de envio esteja livre ou expirado. Para `pending` e `assigned`,
-o gateway precisa
-aceitar o cancelamento; `in_service`, `completed` e `cancelled` retornam 409.
-Se a EcoRota já tiver aceitado um envio cujo identificador não foi gravado, a
-reconciliação externa por referência ainda será necessária quando o adaptador
-a oferecer. O coletor **não** usa essa rota.
+a EcoRota precisa aceitar o cancelamento; se o atendimento já começou lá, a API
+responde 409 `COLLECTION_NOT_CANCELLABLE` mesmo que o estado local ainda diga
+`assigned`. `in_service`, `completed` e `cancelled` retornam 409. Um envio que
+chegou à EcoRota sem o identificador ter sido gravado é religado pela
+sincronização, usando a referência. O coletor **não** usa essa rota.
 
-## Front-end do coletor: contratos ainda sem rota
+## Front-end do coletor
 
-O login e `/auth/me` já funcionam para o perfil `collector`. As rotas abaixo
-foram definidas como contrato, mas **ainda não estão disponíveis**. Os novos
-caminhos respondem 404; `GET /collections/:id` já existe, mas responde 403
-para coletores. Não conecte telas a eles como se já estivessem disponíveis.
+O coletor precisa estar vinculado a um coletor custom da EcoRota. Isso é feito
+uma vez pelo back-end com `npm run ecorota:provision-collector -- <email>`. Sem
+esse vínculo, as rotas abaixo respondem 404 (disponibilidade) ou `null`
+(atribuição).
 
-| Método | Caminho planejado | Entrada/saída prevista |
-| --- | --- | --- |
-| PATCH | `/collectors/me/availability` | `{ "available": boolean }` → coletor atualizado |
-| GET | `/collectors/me/assignment` | Coleta atribuída em `data` ou `null` |
-| GET | `/collections/:id` para coletor | Detalhe da coleta atribuída |
-| POST | `/collections/:id/complete` | Coleta atualizada após confirmação |
+`PATCH /collectors/me/availability` recebe `{ "available": true }` e devolve:
 
-O objeto do coletor previsto tem `id`, `name`, `available` e `status` (`idle`,
-`moving`, `collecting`, `unavailable`). O contrato de coleta é o mesmo exibido
-ao morador, sem identificadores externos. Disponibilidade, atribuição,
-confirmação e atualização de estados dependem do trabalho do Glauco. O coletor
-não cancela solicitações.
+```json
+{
+  "data": {
+    "id": "<id do usuário>",
+    "name": "Coletor Demo",
+    "available": true,
+    "status": "idle"
+  }
+}
+```
+
+`status` pode ser `idle`, `moving`, `collecting` ou `unavailable`. O coletor
+custom começa indisponível. Ao ficar indisponível, ele para de receber novos
+atendimentos, mas precisa concluir os já atribuídos.
+
+`GET /collectors/me/assignment` devolve em `data` a coleta atribuída ao coletor
+(`assigned` ou `in_service`, no mesmo formato do morador) ou `null`. Consulte a
+cada 5 s.
+
+`POST /collections/:id/complete` não recebe corpo. Só funciona depois que o
+coletor chega ao ponto (`in_service` na EcoRota). Antes disso, ou se a coleta
+já foi concluída, a API responde 409 `COLLECTION_NOT_COMPLETABLE`. Coleta de
+outro coletor responde 403. O coletor não cancela solicitações e
+`GET /collections/:id` continua exclusivo do morador.
 
 ## Pontos: regra ainda pendente
 

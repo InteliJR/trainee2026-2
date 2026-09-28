@@ -16,7 +16,9 @@
     "test:watch": "vitest",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "db:seed-demo": "tsx src/scripts/seed-demo.ts"
+    "db:seed-demo": "tsx src/scripts/seed-demo.ts",
+    "ecorota:status": "tsx src/scripts/ecorota-status.ts",
+    "ecorota:provision-collector": "tsx src/scripts/provision-collector.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",
