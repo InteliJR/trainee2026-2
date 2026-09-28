@@ -1,6 +1,7 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom'
 import Layout from '../components/layout/Layout'
 import ColetorHome from '../pages/coletor/ColetorHome'
+import PerfilColetor from '../pages/coletor/PerfilColetor'
 import Login from '../pages/auth/Login'
 import AcompanharColeta from '../pages/morador/AcompanharColeta'
 import HistoricoColetas from '../pages/morador/HistoricoColetas'
@@ -43,7 +44,10 @@ export const router = createBrowserRouter([
           {
             path: 'coletor',
             element: <Outlet />,
-            children: [{ index: true, element: <ColetorHome /> }],
+            children: [
+              { index: true, element: <ColetorHome /> },
+              { path: 'perfil', element: <PerfilColetor /> },
+            ],
           },
         ],
       },

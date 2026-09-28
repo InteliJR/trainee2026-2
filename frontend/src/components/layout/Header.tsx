@@ -27,7 +27,16 @@ export default function Header() {
         <span>EcoRota</span>
       </NavLink>
       <nav className="site-nav" aria-label="Navegação principal">
-        <NavLink to={homePath}>{profileLabel}</NavLink>
+        {user?.role === 'collector' ? (
+          <>
+            <NavLink to="/coletor" end>
+              Atendimento
+            </NavLink>
+            <NavLink to="/coletor/perfil">Perfil</NavLink>
+          </>
+        ) : (
+          <NavLink to={homePath}>{profileLabel}</NavLink>
+        )}
       </nav>
       <div className="site-account">
         <span>{user?.name}</span>
