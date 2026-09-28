@@ -1,4 +1,8 @@
 import type { MaterialType, MaterialUnit } from '../../types'
+import {
+  materialTypeOptions,
+  materialUnitOptions,
+} from '../../utils/collection-format'
 import { Button, Field } from '../ui'
 import styles from './MaterialField.module.css'
 
@@ -19,21 +23,6 @@ export type MaterialFieldProps = {
   onChange: (value: MaterialDraft) => void
   onRemove?: () => void
 }
-
-const materialOptions: { value: MaterialType; label: string }[] = [
-  { value: 'paper', label: 'Papel' },
-  { value: 'plastic', label: 'Plástico' },
-  { value: 'glass', label: 'Vidro' },
-  { value: 'metal', label: 'Metal' },
-  { value: 'electronics', label: 'Eletrônicos' },
-  { value: 'other', label: 'Outro' },
-]
-
-const unitOptions: { value: MaterialUnit; label: string }[] = [
-  { value: 'kg', label: 'Quilogramas (kg)' },
-  { value: 'units', label: 'Unidades' },
-  { value: 'bags', label: 'Sacos' },
-]
 
 export default function MaterialField({
   index,
@@ -72,7 +61,7 @@ export default function MaterialField({
             }
             required
           >
-            {materialOptions.map((option) => (
+            {materialTypeOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -105,7 +94,7 @@ export default function MaterialField({
               onChange({ ...value, unit: event.target.value as MaterialUnit })
             }
           >
-            {unitOptions.map((option) => (
+            {materialUnitOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

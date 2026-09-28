@@ -1,30 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import type { Collection, MaterialType, MaterialUnit } from '../../types'
+import type { Collection } from '../../types'
 import { Button, ErrorState, Loading, StatusBadge } from '../../components/ui'
 import { ApiError } from '../../services/api-error'
 import { cancelCollection, getCollection } from '../../services/coletasService'
+import {
+  collectionDateFormatters,
+  materialLabels,
+  unitLabels,
+} from '../../utils/collection-format'
 import styles from './AcompanharColeta.module.css'
-
-const materialLabels: Record<MaterialType, string> = {
-  paper: 'Papel',
-  plastic: 'Plástico',
-  glass: 'Vidro',
-  metal: 'Metal',
-  electronics: 'Eletrônicos',
-  other: 'Outro',
-}
-
-const unitLabels: Record<MaterialUnit, string> = {
-  kg: 'kg',
-  units: 'unidades',
-  bags: 'sacos',
-}
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
-  dateStyle: 'long',
-  timeStyle: 'short',
-})
 
 type LoadStatus = 'loading' | 'error' | 'success'
 
@@ -169,7 +154,7 @@ export default function AcompanharColeta() {
             </dt>
             <dd>
               <time dateTime={collectionDate}>
-                {dateFormatter.format(new Date(collectionDate))}
+                {collectionDateFormatters.long.format(new Date(collectionDate))}
               </time>
             </dd>
           </div>
