@@ -1,23 +1,18 @@
 import { randomUUID } from 'node:crypto'
-import { execFileSync } from 'node:child_process'
-import { mkdtemp } from 'node:fs/promises'
-import { createServer } from 'node:net'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 
 import type { PrismaClient } from '@prisma/client'
-import EmbeddedPostgres from 'embedded-postgres'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { buildApp } from './app.js'
 import type { Environment } from './config/env.js'
 import { createPrisma } from './config/prisma.js'
-import type { EcoRotaGateway, EcoRotaPoint, EcoRotaRequest } from './integrations/ecorota.js'
+import type { EcoRotaPoint } from './integrations/ecorota.js'
 import { hashPassword } from './services/auth-service.js'
-import { AppError } from './errors/app-error.js'
 import { CollectionService } from './services/coletaService.js'
 import { PointService } from './services/pontosService.js'
 import { RewardService } from './services/reward-service.js'
+import { runNodeTool, startTestDatabase } from './test/database.js'
+import { FakeEcoRota } from './test/fake-ecorota.js'
 
 const pointId = '0e76397e-154d-48a0-bf76-689a8fed00ac'
 const point: EcoRotaPoint = {
@@ -27,53 +22,8 @@ const point: EcoRotaPoint = {
   coordinates: [-46.6, -23.5],
 }
 
-class FakeEcoRota implements EcoRotaGateway {
-  requests = new Map<string, EcoRotaRequest>()
-  createCalls: { pointId: string; externalReference: string }[] = []
-  failCreate = false
-  rejectCancel = false
-
-  async listPoints() { return [point] }
-  async createRequest(input: { pointId: string; externalReference: string }) {
-    this.createCalls.push(input)
-    if (this.failCreate) throw new Error('EcoRota offline')
-    const existing = [...this.requests.values()].find(
-      (item) => item.pointId === input.pointId && item.externalReference === input.externalReference,
-    )
-    if (existing) return existing
-    const request: EcoRotaRequest = {
-      id: randomUUID(),
-      pointId: input.pointId,
-      externalReference: input.externalReference,
-      status: 'pending',
-      collectorId: null,
-    }
-    this.requests.set(request.id, request)
-    return request
-  }
-  async getRequest(id: string) { return this.requests.get(id)! }
-  async cancelRequest(id: string) {
-    if (this.rejectCancel) {
-      throw new AppError({ code: 'COLLECTION_NOT_CANCELLABLE', message: 'Too late', statusCode: 409 })
-    }
-    const request = this.requests.get(id)!
-    request.status = 'cancelled'
-    return request
-  }
-}
-
-async function freePort(): Promise<number> {
-  const server = createServer()
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
-  const address = server.address()
-  if (!address || typeof address === 'string') throw new Error('No TCP port')
-  const port = address.port
-  await new Promise<void>((resolve) => server.close(() => resolve()))
-  return port
-}
-
 describe('resident flow with PostgreSQL', () => {
-  let postgres: EmbeddedPostgres
+  let stopDatabase: (() => Promise<void>) | undefined
   let prisma: PrismaClient
   let app: Awaited<ReturnType<typeof buildApp>>
   let gateway: FakeEcoRota
@@ -85,25 +35,8 @@ describe('resident flow with PostgreSQL', () => {
   let config: Environment
 
   beforeAll(async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'ecorota-integration-'))
-    const port = await freePort()
-    postgres = new EmbeddedPostgres({
-      databaseDir: dir,
-      port,
-      user: 'ecorota',
-      password: 'ecorota',
-      persistent: false,
-      onLog: () => {},
-    })
-    await postgres.initialise()
-    await postgres.start()
-    const databaseUrl = `postgresql://ecorota:ecorota@127.0.0.1:${port}/ecorota`
-    await postgres.createDatabase('ecorota')
-    execFileSync('npx', ['prisma', 'migrate', 'deploy'], {
-      cwd: process.cwd(),
-      env: { ...process.env, DATABASE_URL: databaseUrl },
-      stdio: 'pipe',
-    })
+    const { databaseUrl, stop } = await startTestDatabase()
+    stopDatabase = stop
 
     config = {
       NODE_ENV: 'test',
@@ -116,16 +49,11 @@ describe('resident flow with PostgreSQL', () => {
       ECOROTA_API_URL: 'http://localhost:3334',
       ECOROTA_TIMEOUT_MS: 5000,
     }
-    execFileSync('npm', ['run', 'db:seed-demo'], {
-      cwd: process.cwd(),
-      env: {
-        ...process.env,
-        DATABASE_URL: databaseUrl,
-        ECOROTA_API_URL: 'http://localhost:3334',
-        NODE_ENV: 'test',
-        DEMO_PASSWORD: 'demo-password-123',
-      },
-      stdio: 'pipe',
+    runNodeTool('npm', ['run', 'db:seed-demo'], {
+      DATABASE_URL: databaseUrl,
+      ECOROTA_API_URL: 'http://localhost:3334',
+      NODE_ENV: 'test',
+      DEMO_PASSWORD: 'demo-password-123',
     })
     prisma = createPrisma(config)
     await prisma.collectionPoint.create({
@@ -137,7 +65,7 @@ describe('resident flow with PostgreSQL', () => {
         latitude: point.coordinates[1],
       },
     })
-    gateway = new FakeEcoRota()
+    gateway = new FakeEcoRota([point])
     app = await buildApp({ config, logger: false, prisma, ecorota: gateway })
     service = new CollectionService(prisma, gateway, new PointService(prisma))
 
@@ -169,7 +97,7 @@ describe('resident flow with PostgreSQL', () => {
   afterAll(async () => {
     if (app) await app.close()
     if (prisma) await prisma.$disconnect()
-    if (postgres) await postgres.stop()
+    if (stopDatabase) await stopDatabase()
   })
 
   function auth(token = residentToken) { return { authorization: `Bearer ${token}` } }
