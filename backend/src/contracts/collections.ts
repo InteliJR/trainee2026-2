@@ -32,7 +32,7 @@ export const collectionStatusSchema = z.enum([
 export const materialSchema = z
   .object({
     type: materialTypeSchema,
-    quantity: z.number().positive(),
+    quantity: z.number().positive().max(999_999_999),
     unit: materialUnitSchema,
     description: z.string().trim().min(1).max(120).optional(),
   })
@@ -43,6 +43,14 @@ export const materialSchema = z
         code: 'custom',
         message: 'Description is required when material type is other',
         path: ['description'],
+      })
+    }
+
+    if (material.unit === 'kg' && Number(material.quantity.toFixed(3)) !== material.quantity) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Kilograms support at most three decimal places',
+        path: ['quantity'],
       })
     }
 
