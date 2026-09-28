@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import type { UserRole } from '../types'
 import { useAuth } from '../contexts/useAuth'
 import { Loading } from '../components/ui'
+import { getHomePath } from './paths'
 
 export type ProtectedRouteProps = {
   allowedRoles: UserRole[]
@@ -31,12 +32,7 @@ export default function ProtectedRoute({
   }
 
   if (!allowedRoles.includes(user.role)) {
-    return (
-      <Navigate
-        to={user.role === 'resident' ? '/morador' : '/coletor'}
-        replace
-      />
-    )
+    return <Navigate to={getHomePath(user.role)} replace />
   }
 
   return children ?? <Outlet />

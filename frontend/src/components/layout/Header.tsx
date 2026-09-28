@@ -1,11 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/useAuth'
+import { getHomePath } from '../../routes/paths'
 import { Button } from '../ui'
 
 export default function Header() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const homePath = user?.role === 'collector' ? '/coletor' : '/morador'
+  const homePath = getHomePath(user?.role ?? 'resident')
   const profileLabel = user?.role === 'collector' ? 'Coletor' : 'Morador'
 
   function handleLogout() {
@@ -26,7 +27,16 @@ export default function Header() {
         <span>EcoRota</span>
       </NavLink>
       <nav className="site-nav" aria-label="Navegação principal">
-        <NavLink to={homePath}>{profileLabel}</NavLink>
+        {user?.role === 'collector' ? (
+          <>
+            <NavLink to="/coletor" end>
+              Atendimento
+            </NavLink>
+            <NavLink to="/coletor/perfil">Perfil</NavLink>
+          </>
+        ) : (
+          <NavLink to={homePath}>{profileLabel}</NavLink>
+        )}
       </nav>
       <div className="site-account">
         <span>{user?.name}</span>
