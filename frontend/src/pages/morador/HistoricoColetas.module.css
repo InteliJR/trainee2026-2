@@ -1,6 +1,6 @@
 .page {
   display: grid;
-  gap: 28px;
+  gap: 24px;
   max-width: 1040px;
   margin: 0 auto;
   padding: 36px 24px 52px;
@@ -24,7 +24,7 @@
   font-weight: 600;
 }
 
-.heading > p:last-child {
+.heading p:last-child {
   color: var(--color-canopy);
   line-height: 1.5;
 }
@@ -36,8 +36,7 @@
   text-transform: uppercase;
 }
 
-.historyLink {
-  margin-top: 4px;
+.backLink {
   color: var(--color-canopy);
   font-size: 14px;
   font-weight: 600;
@@ -47,7 +46,7 @@
 
 @media (max-width: 600px) {
   .page {
-    gap: 22px;
+    gap: 20px;
     padding: 28px 18px 40px;
   }
 

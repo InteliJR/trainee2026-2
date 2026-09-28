@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { CollectionPoint } from '../../types'
 import CollectionPointList from '../../components/collection-points/CollectionPointList'
 import { useCollectionPoints } from '../../hooks/useCollectionPoints'
@@ -23,6 +24,9 @@ export default function MoradorHome() {
         <p>
           Selecione o ponto mais conveniente para entregar seus recicláveis.
         </p>
+        <Link className={styles.historyLink} to="/morador/historico">
+          Ver histórico
+        </Link>
       </div>
       <CollectionPointList
         points={points}
