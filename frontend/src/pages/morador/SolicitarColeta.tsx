@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import type {
   CreateCollectionInput,
   MaterialType,
@@ -9,8 +9,10 @@ import MaterialField, {
   type MaterialFieldErrors,
   type MaterialDraft,
 } from '../../components/collections/MaterialField'
-import { Button, Field, Loading } from '../../components/ui'
+import { Button, ErrorState, Field, Loading } from '../../components/ui'
 import { useCollectionPoints } from '../../hooks/useCollectionPoints'
+import { ApiError } from '../../services/api-error'
+import { createCollection } from '../../services/coletasService'
 import styles from './SolicitarColeta.module.css'
 
 const createEmptyMaterial = (): MaterialDraft => ({
@@ -21,6 +23,7 @@ const createEmptyMaterial = (): MaterialDraft => ({
 })
 
 export default function SolicitarColeta() {
+  const navigate = useNavigate()
   const { pontoId = '' } = useParams()
   const { points, status } = useCollectionPoints()
   const point = points.find(({ id }) => id === pontoId)
@@ -34,6 +37,8 @@ export default function SolicitarColeta() {
   const [materialErrors, setMaterialErrors] = useState<MaterialFieldErrors[]>(
     [],
   )
+  const [submitError, setSubmitError] = useState<Error | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   function updateMaterial(index: number, value: MaterialDraft) {
     setMaterials((current) =>
@@ -46,7 +51,7 @@ export default function SolicitarColeta() {
     )
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     let isValid = true
     const nextMaterialErrors = materials.map((material) => {
@@ -98,7 +103,57 @@ export default function SolicitarColeta() {
       scheduledAt: scheduledDate!.toISOString(),
       notes: notes.trim() || undefined,
     }
-    void input
+    setSubmitError(null)
+    setIsSubmitting(true)
+    try {
+      const response = await createCollection(input)
+      navigate(`/morador/coletas/${response.data.id}`)
+    } catch (cause) {
+      const error = cause instanceof Error ? cause : new Error(String(cause))
+      let shownInField = false
+      if (error instanceof ApiError) {
+        if (error.code === 'INVALID_SCHEDULE') {
+          setScheduledAtError(error.message)
+          shownInField = true
+        }
+        if (error.code === 'VALIDATION_ERROR') {
+          const fields = error.details.fields
+          if (Array.isArray(fields)) {
+            const nextMaterialErrors = [...materialErrors]
+            for (const field of fields) {
+              if (typeof field !== 'object' || field === null) continue
+              const { path, message } = field as {
+                path?: unknown
+                message?: unknown
+              }
+              if (typeof path !== 'string' || typeof message !== 'string') {
+                continue
+              }
+              if (path === 'scheduledAt') {
+                setScheduledAtError(message)
+                shownInField = true
+              }
+              const materialMatch = path.match(
+                /^materials\.(\d+)\.(quantity|description|type|unit)$/,
+              )
+              if (materialMatch) {
+                const index = Number(materialMatch[1])
+                const fieldName = materialMatch[2] as keyof MaterialFieldErrors
+                nextMaterialErrors[index] = {
+                  ...nextMaterialErrors[index],
+                  [fieldName]: message,
+                }
+                shownInField = true
+              }
+            }
+            setMaterialErrors(nextMaterialErrors)
+          }
+        }
+      }
+      setSubmitError(shownInField ? null : error)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (status === 'loading' || status === 'idle') {
@@ -126,6 +181,18 @@ export default function SolicitarColeta() {
       </header>
 
       <form className={styles.form} onSubmit={handleSubmit}>
+        {submitError &&
+          !(
+            submitError instanceof ApiError &&
+            submitError.code === 'VALIDATION_ERROR'
+          ) && (
+            <ErrorState
+              code={
+                submitError instanceof ApiError ? submitError.code : undefined
+              }
+              message={submitError.message}
+            />
+          )}
         <section className={styles.point} aria-labelledby="point-label">
           <span className={styles.fieldLabel} id="point-label">
             Ponto de coleta
@@ -195,7 +262,9 @@ export default function SolicitarColeta() {
         </Field>
 
         <div className={styles.actions}>
-          <Button type="submit">Solicitar coleta</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Enviando...' : 'Solicitar coleta'}
+          </Button>
         </div>
       </form>
     </section>
