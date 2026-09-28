@@ -19,9 +19,16 @@ export default function Login() {
     setError(null)
     setIsSubmitting(true)
     try {
-      await login(input)
-      const returnTo = (location.state as { from?: string } | null)?.from
-      navigate(returnTo ?? '/', { replace: true })
+      const user = await login(input)
+      const profileHome = user.role === 'resident' ? '/morador' : '/coletor'
+      const requestedPath = (location.state as { from?: string } | null)?.from
+      const allowedPrefix = user.role === 'resident' ? '/morador' : '/coletor'
+      const safeReturnPath =
+        requestedPath === allowedPrefix ||
+        requestedPath?.startsWith(`${allowedPrefix}/`)
+          ? requestedPath
+          : profileHome
+      navigate(safeReturnPath, { replace: true })
     } catch (cause) {
       if (cause instanceof ApiError && cause.code === 'UNAUTHORIZED') {
         setError('E-mail ou senha inválidos.')
