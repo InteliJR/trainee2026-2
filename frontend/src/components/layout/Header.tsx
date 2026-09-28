@@ -1,11 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/useAuth'
+import { getHomePath } from '../../routes/paths'
 import { Button } from '../ui'
 
 export default function Header() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const homePath = user?.role === 'collector' ? '/coletor' : '/morador'
+  const homePath = getHomePath(user?.role ?? 'resident')
   const profileLabel = user?.role === 'collector' ? 'Coletor' : 'Morador'
 
   function handleLogout() {
