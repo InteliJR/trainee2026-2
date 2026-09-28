@@ -73,6 +73,12 @@
   gap: 14px;
 }
 
+.formError {
+  margin: 0;
+  color: var(--color-rust);
+  font-size: 13px;
+}
+
 .sectionHeading {
   display: flex;
   align-items: center;

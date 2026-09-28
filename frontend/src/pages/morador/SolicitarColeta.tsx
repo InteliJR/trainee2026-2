@@ -6,6 +6,7 @@ import type {
   MaterialUnit,
 } from '../../types'
 import MaterialField, {
+  type MaterialFieldErrors,
   type MaterialDraft,
 } from '../../components/collections/MaterialField'
 import { Button, Field, Loading } from '../../components/ui'
@@ -28,6 +29,11 @@ export default function SolicitarColeta() {
   ])
   const [scheduledAt, setScheduledAt] = useState('')
   const [notes, setNotes] = useState('')
+  const [scheduledAtError, setScheduledAtError] = useState<string>()
+  const [materialsError, setMaterialsError] = useState<string>()
+  const [materialErrors, setMaterialErrors] = useState<MaterialFieldErrors[]>(
+    [],
+  )
 
   function updateMaterial(index: number, value: MaterialDraft) {
     setMaterials((current) =>
@@ -35,10 +41,52 @@ export default function SolicitarColeta() {
         itemIndex === index ? value : material,
       ),
     )
+    setMaterialErrors((current) =>
+      current.map((errors, itemIndex) => (itemIndex === index ? {} : errors)),
+    )
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    let isValid = true
+    const nextMaterialErrors = materials.map((material) => {
+      const errors: MaterialFieldErrors = {}
+      if (!Number.isFinite(material.quantity) || material.quantity <= 0) {
+        errors.quantity = 'Informe uma quantidade maior que zero.'
+      } else if (
+        material.unit !== 'kg' &&
+        !Number.isInteger(material.quantity)
+      ) {
+        errors.quantity = 'Use uma quantidade inteira para unidades ou sacos.'
+      }
+      if (material.type === 'other' && !material.description.trim()) {
+        errors.description = 'Descreva o material.'
+      }
+      if (Object.keys(errors).length > 0) isValid = false
+      return errors
+    })
+
+    if (materials.length === 0) {
+      setMaterialsError('Adicione pelo menos um material.')
+      isValid = false
+    } else {
+      setMaterialsError(undefined)
+    }
+    setMaterialErrors(nextMaterialErrors)
+
+    const scheduledDate = scheduledAt ? new Date(scheduledAt) : null
+    if (!scheduledDate || Number.isNaN(scheduledDate.getTime())) {
+      setScheduledAtError('Informe a data e o horário da coleta.')
+      isValid = false
+    } else if (scheduledDate.getTime() <= Date.now()) {
+      setScheduledAtError('Escolha uma data e horário futuros.')
+      isValid = false
+    } else {
+      setScheduledAtError(undefined)
+    }
+
+    if (!isValid) return
+
     const input: CreateCollectionInput = {
       collectionPointId: pontoId,
       materials: materials.map(({ type, quantity, unit, description }) => ({
@@ -47,9 +95,7 @@ export default function SolicitarColeta() {
         unit: unit as MaterialUnit,
         ...(description.trim() ? { description: description.trim() } : {}),
       })),
-      scheduledAt: scheduledAt
-        ? new Date(scheduledAt).toISOString()
-        : undefined,
+      scheduledAt: scheduledDate!.toISOString(),
       notes: notes.trim() || undefined,
     }
     void input
@@ -100,12 +146,18 @@ export default function SolicitarColeta() {
               Adicionar material
             </Button>
           </div>
+          {materialsError && (
+            <p className={styles.formError} role="alert">
+              {materialsError}
+            </p>
+          )}
           <div className={styles.materials}>
             {materials.map((material, index) => (
               <MaterialField
                 key={index}
                 index={index}
                 value={material}
+                errors={materialErrors[index]}
                 canRemove={materials.length > 1}
                 onChange={(value) => updateMaterial(index, value)}
                 onRemove={() =>
@@ -118,11 +170,18 @@ export default function SolicitarColeta() {
           </div>
         </section>
 
-        <Field id="scheduled-at" label="Data e horário da coleta">
+        <Field
+          id="scheduled-at"
+          label="Data e horário da coleta"
+          error={scheduledAtError}
+        >
           <input
             type="datetime-local"
             value={scheduledAt}
-            onChange={(event) => setScheduledAt(event.target.value)}
+            onChange={(event) => {
+              setScheduledAt(event.target.value)
+              setScheduledAtError(undefined)
+            }}
           />
         </Field>
 
