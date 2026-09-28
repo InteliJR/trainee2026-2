@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import type { CollectionPoint } from '../../types'
 import CollectionPointList from '../../components/collection-points/CollectionPointList'
 import { useCollectionPoints } from '../../hooks/useCollectionPoints'
 import styles from './MoradorHome.module.css'
 
 export default function MoradorHome() {
+  const navigate = useNavigate()
   const { points, status, error, refetch } = useCollectionPoints()
   const [selectedPoint, setSelectedPoint] = useState<CollectionPoint | null>(
     null,
@@ -13,7 +14,7 @@ export default function MoradorHome() {
 
   function continueToRequest() {
     if (!selectedPoint) return
-    // TODO: navegar para o formulário de solicitação (task 7)
+    navigate(`/morador/solicitar/${selectedPoint.id}`)
   }
 
   return (
