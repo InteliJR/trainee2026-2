@@ -1,16 +1,26 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import type { Collection } from '../../types'
-import { getCollection } from '../../services/coletasService'
+import {
+  completeCollection,
+  getCollection,
+} from '../../services/coletasService'
+import { ApiError } from '../../services/api-error'
 import DetalheAtendimento from './DetalheAtendimento'
 
 vi.mock('../../services/coletasService', () => ({
   getCollection: vi.fn(),
+  completeCollection: vi.fn(),
   cancelCollection: vi.fn(),
   createCollection: vi.fn(),
   listCollections: vi.fn(),
-  completeCollection: vi.fn(),
 }))
 
 const collection: Collection = {
@@ -51,9 +61,11 @@ function renderDetails() {
 
 describe('DetalheAtendimento', () => {
   const getCollectionMock = vi.mocked(getCollection)
+  const completeCollectionMock = vi.mocked(completeCollection)
 
   beforeEach(() => {
     getCollectionMock.mockReset()
+    completeCollectionMock.mockReset()
   })
 
   afterEach(() => {
@@ -87,5 +99,53 @@ describe('DetalheAtendimento', () => {
 
     expect(await screen.findByText('Retirar na portaria')).toBeInTheDocument()
     expect(getCollectionMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('completes an in-service assignment and offers the next collection', async () => {
+    const completedCollection: Collection = {
+      ...collection,
+      status: 'completed',
+      pointsAwarded: 10,
+    }
+    getCollectionMock.mockResolvedValue({ data: collection })
+    completeCollectionMock.mockResolvedValue({ data: completedCollection })
+    renderDetails()
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Concluir coleta' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Sim, concluir' }))
+
+    expect(await screen.findByText('Coleta concluída')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Ver próxima coleta' }),
+    ).toHaveAttribute('href', '/coletor')
+    expect(completeCollectionMock).toHaveBeenCalledWith(collection.id)
+    expect(getCollectionMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('refetches when the backend reports the collection is no longer completable', async () => {
+    getCollectionMock
+      .mockResolvedValueOnce({ data: collection })
+      .mockResolvedValueOnce({ data: { ...collection, status: 'cancelled' } })
+    completeCollectionMock.mockRejectedValue(
+      new ApiError({
+        code: 'COLLECTION_NOT_COMPLETABLE',
+        message: 'This collection has changed',
+        requestId: 'test',
+        status: 409,
+      }),
+    )
+    renderDetails()
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Concluir coleta' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Sim, concluir' }))
+
+    expect(
+      await screen.findByText('Esta coleta foi cancelada pelo morador.'),
+    ).toBeInTheDocument()
+    await waitFor(() => expect(getCollectionMock).toHaveBeenCalledTimes(2))
   })
 })
