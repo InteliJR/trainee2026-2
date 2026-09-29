@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { LoginInput } from '../../types'
 import { Button, Field } from '../../components/ui'
 import { useAuth } from '../../contexts/useAuth'
@@ -132,6 +132,9 @@ export default function Login() {
           <Icon name="shield" size={14} />
           Acesso seguro à sua conta
         </p>
+        <Link className={styles.dashboardDemoLink} to="/ecorota/dashboard">
+          Ver dashboard EcoRota de demonstração <Icon name="arrow" size={15} />
+        </Link>
         <p className={styles.note}>
           <strong>Morador ou coletor, você faz parte dessa mudança.</strong>
           Entre para acompanhar suas coletas e seguir transformando.
