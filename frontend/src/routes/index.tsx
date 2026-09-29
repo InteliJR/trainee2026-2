@@ -12,11 +12,13 @@ import MoradorHome from '../pages/morador/MoradorHome'
 import Conquistas from '../pages/morador/Conquistas'
 import PerfilMorador from '../pages/morador/PerfilMorador'
 import SolicitarColeta from '../pages/morador/SolicitarColeta'
+import EcoRotaDashboard from '../pages/ecorota/EcoRotaDashboard'
 import ProtectedRoute from './ProtectedRoute'
 import ProfileHomeRedirect from './ProfileHomeRedirect'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
+  { path: '/ecorota/dashboard', element: <EcoRotaDashboard /> },
   {
     element: (
       <ProtectedRoute allowedRoles={['resident', 'collector']}>
