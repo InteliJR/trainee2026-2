@@ -55,6 +55,7 @@ export type CollectionListQuery = {
   cursor?: string
   limit: number
   status?: CollectionStatus
+  stage?: 'active' | 'finished'
 }
 
 export type CollectionListResponse = PaginatedResponse<Collection>

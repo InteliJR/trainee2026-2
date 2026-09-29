@@ -172,6 +172,34 @@ describe('collector operation and EcoRota sync', () => {
     expect(invalid.statusCode).toBe(400)
   })
 
+  it('hides removed points from new requests while preserving collection history', async () => {
+    const temporary = { ...point, id: '7c1caa82-845a-49be-b003-73adfca3df18', name: 'Ponto temporário' }
+    gateway.points.push(temporary)
+    await sync.syncOnce()
+    const created = await app.inject({
+      method: 'POST', url: '/api/v1/collections', headers: auth('resident'),
+      payload: { collectionPointId: temporary.id, materials: [{ type: 'paper', quantity: 1, unit: 'kg' }] },
+    })
+    expect(created.statusCode).toBe(201)
+    const id = created.json().data.id as string
+
+    gateway.points = gateway.points.filter((item) => item.id !== temporary.id)
+    await sync.syncOnce()
+    const available = await app.inject({
+      method: 'GET', url: '/api/v1/collection-points', headers: auth('resident'),
+    })
+    expect(available.json().data.some((item: { id: string }) => item.id === temporary.id)).toBe(false)
+    const rejected = await app.inject({
+      method: 'POST', url: '/api/v1/collections', headers: auth('resident'),
+      payload: { collectionPointId: temporary.id, materials: [{ type: 'paper', quantity: 1, unit: 'kg' }] },
+    })
+    expect(rejected.statusCode).toBe(404)
+    const history = await app.inject({
+      method: 'GET', url: `/api/v1/collections/${id}`, headers: auth('resident'),
+    })
+    expect(history.json().data.collectionPoint.name).toBe(temporary.name)
+  })
+
   it('runs the full custom collector flow through sync, assignment and confirmation', async () => {
     const { id, requestId } = await createCollection()
     const assignment = () => app.inject({
@@ -207,18 +235,99 @@ describe('collector operation and EcoRota sync', () => {
 
     gateway.arrive(requestId)
     await sync.syncOnce()
+    const beforeRewards = await app.inject({
+      method: 'GET', url: '/api/v1/rewards/balance', headers: auth('resident'),
+    })
+    const previousCount = beforeRewards.json().data.completedCollections as number
     const done = await app.inject({
       method: 'POST', url: `/api/v1/collections/${id}/complete`, headers: auth('collector'),
     })
     expect(done.statusCode).toBe(200)
-    expect(done.json().data.status).toBe('completed')
+    expect(done.json().data).toMatchObject({ status: 'completed', pointsAwarded: 1 })
     expect(gateway.requests.get(requestId)?.status).toBe('completed')
+    const rewards = await app.inject({
+      method: 'GET', url: '/api/v1/rewards/balance', headers: auth('resident'),
+    })
+    expect(rewards.json().data.completedCollections).toBe(previousCount + 1)
+    expect(rewards.json().data.balance).toBeGreaterThanOrEqual(previousCount + 1)
+    const collectorRewards = await app.inject({
+      method: 'GET', url: '/api/v1/rewards/balance', headers: auth('collector'),
+    })
+    expect(collectorRewards.statusCode).toBe(403)
     expect((await assignment()).json()).toEqual({ data: null })
 
     const twice = await app.inject({
       method: 'POST', url: `/api/v1/collections/${id}/complete`, headers: auth('collector'),
     })
     expect(twice.statusCode).toBe(409)
+  })
+
+  it('scopes agenda, completed collections, frequent points and details to the collector', async () => {
+    const { id, requestId } = await createCollection()
+    gateway.assign(requestId, await ecorotaIdOf('collector'))
+    await sync.syncOnce()
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(start)
+    end.setDate(end.getDate() + 1)
+    const params = new URLSearchParams({
+      view: 'today', dayStart: start.toISOString(), dayEnd: end.toISOString(),
+    })
+    const today = await app.inject({
+      method: 'GET', url: `/api/v1/collectors/me/collections?${params}`, headers: auth('collector'),
+    })
+    expect(today.statusCode).toBe(200)
+    expect(today.json().data.map((item: { id: string }) => item.id)).toContain(id)
+
+    const otherList = await app.inject({
+      method: 'GET', url: `/api/v1/collectors/me/collections?${params}`, headers: auth('otherCollector'),
+    })
+    expect(otherList.json().data.some((item: { id: string }) => item.id === id)).toBe(false)
+    const otherDetail = await app.inject({
+      method: 'GET', url: `/api/v1/collectors/me/collections/${id}`, headers: auth('otherCollector'),
+    })
+    expect(otherDetail.statusCode).toBe(404)
+    const residentDetail = await app.inject({
+      method: 'GET', url: `/api/v1/collectors/me/collections/${id}`, headers: auth('resident'),
+    })
+    expect(residentDetail.statusCode).toBe(403)
+    const ownDetail = await app.inject({
+      method: 'GET', url: `/api/v1/collectors/me/collections/${id}`, headers: auth('collector'),
+    })
+    expect(ownDetail.json().data.id).toBe(id)
+
+    gateway.arrive(requestId)
+    await sync.syncOnce()
+    const done = await app.inject({
+      method: 'POST', url: `/api/v1/collections/${id}/complete`, headers: auth('collector'),
+    })
+    expect(done.statusCode).toBe(200)
+    const completed = await app.inject({
+      method: 'GET', url: '/api/v1/collectors/me/collections?view=completed', headers: auth('collector'),
+    })
+    expect(completed.json().data.map((item: { id: string }) => item.id)).toContain(id)
+    const finishedHistory = await app.inject({
+      method: 'GET', url: '/api/v1/collections?stage=finished', headers: auth('resident'),
+    })
+    expect(finishedHistory.json().data.map((item: { id: string }) => item.id)).toContain(id)
+    const activeHistory = await app.inject({
+      method: 'GET', url: '/api/v1/collections?stage=active', headers: auth('resident'),
+    })
+    expect(activeHistory.json().data.map((item: { id: string }) => item.id)).not.toContain(id)
+    const summary = await app.inject({
+      method: 'GET', url: '/api/v1/collectors/me/summary', headers: auth('collector'),
+    })
+    expect(summary.json().data.frequentPoints).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: point.id })]),
+    )
+    const residentDashboard = await app.inject({
+      method: 'GET', url: '/api/v1/collections/dashboard', headers: auth('resident'),
+    })
+    expect(residentDashboard.json().data.completed).toBeGreaterThanOrEqual(1)
+    const collectorDashboard = await app.inject({
+      method: 'GET', url: '/api/v1/collections/dashboard', headers: auth('collector'),
+    })
+    expect(collectorDashboard.statusCode).toBe(403)
   })
 
   it('mirrors system collectors without exposing a local collector', async () => {
@@ -233,7 +342,13 @@ describe('collector operation and EcoRota sync', () => {
 
     gateway.requests.get(requestId)!.status = 'completed'
     await sync.syncOnce()
-    expect((await prisma.collection.findUniqueOrThrow({ where: { id } })).status).toBe('completed')
+    expect(await prisma.collection.findUniqueOrThrow({ where: { id } })).toMatchObject({
+      status: 'completed', pointsAwarded: 1,
+    })
+    await sync.syncOnce()
+    expect(await prisma.rewardTransaction.count({
+      where: { collectionId: id, reason: 'collection_completed' },
+    })).toBe(1)
   })
 
   it('maps an EcoRota refusal to cancel after service started', async () => {

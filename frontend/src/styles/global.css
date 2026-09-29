@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;450;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 :root {
   font-family: var(--font-body);
@@ -6,39 +6,55 @@
   background: var(--color-paper);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-
+  -webkit-font-smoothing: antialiased;
   --color-forest: #12281f;
-  --color-leaf: #6e8f4c;
   --color-canopy: #254f3b;
+  --color-leaf: #6e8f4c;
   --color-paper: #f1ecdd;
+  --color-surface: #fcfbf7;
+  --color-mist: #e5eddf;
   --color-amber: #9c6b34;
   --color-rust: #b85c2e;
   --color-success: #3d7a4e;
   --color-ink: #1a1f1b;
-  --color-border: #d5cfbe;
-  --radius: 6px;
+  --color-muted: #657064;
+  --color-border: #d9dacd;
+  --radius: 4px;
+  --radius-card: 14px;
   --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'IBM Plex Sans', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
-
 * {
   box-sizing: border-box;
 }
-
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
   font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
 }
-
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
 button,
 a {
   color: inherit;
-  font: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
-
+button,
+input,
+select,
+textarea,
+a {
+  touch-action: manipulation;
+}
 a {
   text-decoration: none;
 }

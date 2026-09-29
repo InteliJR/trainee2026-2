@@ -10,8 +10,10 @@ export type CollectionHistoryListProps = {
   error: Error | null
   hasMore: boolean
   statusFilter: CollectionStatus | undefined
+  stageFilter: 'active' | 'finished' | undefined
   loadMore: () => void
   setStatusFilter: (status: CollectionStatus | undefined) => void
+  setStageFilter: (stage: 'active' | 'finished' | undefined) => void
   onRetry: () => void
 }
 
@@ -31,8 +33,10 @@ export default function CollectionHistoryList({
   error,
   hasMore,
   statusFilter,
+  stageFilter,
   loadMore,
   setStatusFilter,
+  setStageFilter,
   onRetry,
 }: CollectionHistoryListProps) {
   let content
@@ -89,6 +93,11 @@ export default function CollectionHistoryList({
 
   return (
     <div className={styles.wrapper}>
+      <div className={styles.stageFilters} role="group" aria-label="Etapa das coletas">
+        <Button variant={stageFilter === undefined && !statusFilter ? 'primary' : 'secondary'} onClick={() => setStageFilter(undefined)}>Todas</Button>
+        <Button variant={stageFilter === 'active' ? 'primary' : 'secondary'} onClick={() => setStageFilter('active')}>Ativas</Button>
+        <Button variant={stageFilter === 'finished' ? 'primary' : 'secondary'} onClick={() => setStageFilter('finished')}>Finalizadas</Button>
+      </div>
       <Field id="collection-status-filter" label="Filtrar por status">
         <select
           value={statusFilter ?? ''}

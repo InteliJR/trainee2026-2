@@ -1,49 +1,68 @@
 .field {
   display: grid;
-  gap: 7px;
+  gap: 8px;
+  min-width: 0;
+  align-content: start;
 }
-
 .label {
-  color: var(--color-forest);
-  font-size: 14px;
-  font-weight: 600;
+  color: var(--color-canopy);
+  font: 500 11px/1.5 var(--font-mono);
 }
-
 .field :global(input),
 .field :global(select),
 .field :global(textarea) {
   width: 100%;
-  min-height: 42px;
+  min-width: 0;
+  min-height: 46px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 9px 11px;
-  background: var(--color-paper);
+  padding: 11px 13px;
+  background: var(--color-surface);
   color: var(--color-forest);
-  font: inherit;
+  font: 14px var(--font-body);
+  transition:
+    border-color 180ms,
+    background-color 180ms;
 }
-
+.field :global(textarea) {
+  resize: vertical;
+  line-height: 1.6;
+}
+.field :global(input)::placeholder,
+.field :global(textarea)::placeholder {
+  color: #7a8274;
+}
+.field :global(input:hover),
+.field :global(select:hover),
+.field :global(textarea:hover) {
+  border-color: #9da990;
+}
 .field :global(input:focus-visible),
 .field :global(select:focus-visible),
 .field :global(textarea:focus-visible) {
   border-color: var(--color-leaf);
-  outline: 3px solid color-mix(in srgb, var(--color-leaf), transparent 78%);
+  outline: 3px solid #6e8f4c33;
   outline-offset: 1px;
+  background: white;
 }
-
 .field :global([aria-invalid='true']) {
   border-color: var(--color-rust);
 }
-
 .hint,
 .error {
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 12px;
+  line-height: 1.5;
 }
-
 .hint {
-  color: var(--color-canopy);
+  color: var(--color-muted);
 }
-
 .error {
-  color: var(--color-rust);
+  color: #9c4620;
+}
+@media (max-width: 800px) {
+  .field :global(input),
+  .field :global(select),
+  .field :global(textarea) {
+    font-size: 16px;
+  }
 }

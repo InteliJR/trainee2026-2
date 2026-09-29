@@ -2,11 +2,20 @@ import type { RewardBalance, RewardTransactionListResponse } from '../types'
 import type { DataResponse } from '../types/common'
 import { get } from './api'
 import { USE_MOCKS } from './config'
-import { mockRewardBalance, mockRewardTransactions } from './mocks/rewards'
+import { mockRewardTransactions } from './mocks/rewards'
+import { mockCollections } from './mocks/collections'
 
 export async function getRewardBalance(): Promise<DataResponse<RewardBalance>> {
   return USE_MOCKS
-    ? { data: mockRewardBalance }
+    ? {
+        data: {
+          balance: mockCollections.filter((item) => item.status === 'completed')
+            .length,
+          completedCollections: mockCollections.filter(
+            (item) => item.status === 'completed',
+          ).length,
+        },
+      }
     : get<DataResponse<RewardBalance>>('/rewards/balance')
 }
 

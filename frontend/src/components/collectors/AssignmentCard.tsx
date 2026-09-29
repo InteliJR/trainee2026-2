@@ -5,6 +5,7 @@ import {
   formatMaterial,
 } from '../../utils/collection-format'
 import { Card, StatusBadge } from '../ui'
+import Icon from '../ui/Icon'
 import styles from './AssignmentCard.module.css'
 
 export type AssignmentCardProps = {
@@ -18,7 +19,9 @@ export default function AssignmentCard({ collection }: AssignmentCardProps) {
     <Card className={styles.card}>
       <header className={styles.header}>
         <div className={styles.location}>
-          <span className={styles.eyebrow}>Ponto de coleta</span>
+          <span className={styles.eyebrow}>
+            <Icon name="pin" size={15} /> PONTO DE COLETA
+          </span>
           <h2>{collection.collectionPoint.name}</h2>
         </div>
         <StatusBadge status={collection.status} />
@@ -47,6 +50,7 @@ export default function AssignmentCard({ collection }: AssignmentCardProps) {
 
       <Link className={styles.link} to={`/coletor/coletas/${collection.id}`}>
         Ver detalhes
+        <Icon name="arrow" size={16} />
       </Link>
     </Card>
   )

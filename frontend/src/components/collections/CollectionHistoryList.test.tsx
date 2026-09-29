@@ -6,6 +6,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 import type { Collection } from '../../types'
 import { listCollections } from '../../services/coletasService'
 import { useCollectionHistory } from '../../hooks/useCollectionHistory'
@@ -50,16 +51,20 @@ function HistoryHarness() {
   const history = useCollectionHistory()
 
   return (
-    <CollectionHistoryList
-      collections={history.collections}
-      status={history.status}
-      error={history.error}
-      hasMore={history.hasMore}
-      statusFilter={history.statusFilter}
-      loadMore={history.loadMore}
-      setStatusFilter={history.setStatusFilter}
-      onRetry={history.refetch}
-    />
+    <MemoryRouter>
+      <CollectionHistoryList
+        collections={history.collections}
+        status={history.status}
+        error={history.error}
+        hasMore={history.hasMore}
+        statusFilter={history.statusFilter}
+        stageFilter={history.stageFilter}
+        loadMore={history.loadMore}
+        setStatusFilter={history.setStatusFilter}
+        setStageFilter={history.setStageFilter}
+        onRetry={history.refetch}
+      />
+    </MemoryRouter>
   )
 }
 
@@ -115,6 +120,9 @@ describe('CollectionHistoryList', () => {
     expect(await screen.findByText('Praça das Palmeiras')).toBeInTheDocument()
     expect(screen.getByText('Papel')).toBeInTheDocument()
     expect(screen.getByText('3 kg')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Acompanhar coleta' }),
+    ).toHaveAttribute('href', '/morador/coletas/' + firstCollection.id)
   })
 
   it('loads another cursor page and accumulates its collections', async () => {
@@ -134,6 +142,21 @@ describe('CollectionHistoryList', () => {
       cursor: 'cursor-next',
       limit: 20,
       status: undefined,
+      stage: undefined,
+    })
+  })
+
+  it('separates active and finished collections on the server', async () => {
+    listCollectionsMock.mockImplementation(async (query) => ({
+      data: [query?.stage === 'finished' ? secondCollection : firstCollection],
+      nextCursor: null,
+    }))
+    render(<HistoryHarness />)
+    expect(await screen.findByText('Praça das Palmeiras')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Finalizadas' }))
+    expect(await screen.findByText('Parque do Ipê')).toBeInTheDocument()
+    expect(listCollectionsMock).toHaveBeenLastCalledWith({
+      cursor: undefined, limit: 20, status: undefined, stage: 'finished',
     })
   })
 
@@ -159,6 +182,7 @@ describe('CollectionHistoryList', () => {
       cursor: undefined,
       limit: 20,
       status: 'completed',
+      stage: undefined,
     })
   })
 })

@@ -104,6 +104,17 @@ export const collectionSchema = z
 
 export const collectionListQuerySchema = cursorQuerySchema.extend({
   status: collectionStatusSchema.optional(),
+  stage: z.enum(['active', 'finished']).optional(),
+})
+
+export const collectorCollectionQuerySchema = cursorQuerySchema.extend({
+  view: z.enum(['today', 'completed']),
+  dayStart: isoDateTimeSchema.optional(),
+  dayEnd: isoDateTimeSchema.optional(),
+}).superRefine((query, context) => {
+  if (query.view === 'today' && (!query.dayStart || !query.dayEnd || query.dayStart >= query.dayEnd)) {
+    context.addIssue({ code: 'custom', message: 'A valid day range is required', path: ['dayStart'] })
+  }
 })
 
 export const collectionResponseSchema = dataResponseSchema(collectionSchema)
@@ -116,3 +127,4 @@ export type CollectionStatus = z.infer<typeof collectionStatusSchema>
 export type CreateCollectionInput = z.infer<typeof createCollectionInputSchema>
 export type Collection = z.infer<typeof collectionSchema>
 export type CollectionListQuery = z.infer<typeof collectionListQuerySchema>
+export type CollectorCollectionQuery = z.infer<typeof collectorCollectionQuerySchema>

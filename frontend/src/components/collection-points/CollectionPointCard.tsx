@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react'
 import type { CollectionPoint } from '../../types'
+import Icon from '../ui/Icon'
 import { Card } from '../ui'
 import styles from './CollectionPointCard.module.css'
 
@@ -31,15 +32,21 @@ export default function CollectionPointCard({
       onClick={() => onClick(point)}
       onKeyDown={handleKeyDown}
     >
-      <span className={styles.kind} data-kind={point.kind}>
-        {point.kind === 'habitual' ? 'Habitual' : 'Adicional'}
-      </span>
+      <div className={styles.top}>
+        <span className={styles.pin}>
+          <Icon name="pin" size={21} />
+        </span>
+        <span className={styles.kind} data-kind={point.kind}>
+          {point.kind === 'habitual' ? 'Habitual' : 'Adicional'}
+        </span>
+      </div>
       <span className={styles.name}>{point.name}</span>
       <span className={styles.coordinates}>
         {point.coordinates[0].toFixed(4)}, {point.coordinates[1].toFixed(4)}
       </span>
       <span className={styles.selection} aria-hidden="true">
-        {selected ? 'Selecionado' : 'Selecionar'}
+        {selected ? 'Selecionado' : 'Selecionar ponto'}
+        <Icon name={selected ? 'check' : 'arrow'} size={16} />
       </span>
     </Card>
   )

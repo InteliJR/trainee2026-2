@@ -119,8 +119,8 @@ nem repetir comandos.
 
 A cada rodada, `syncOnce()`:
 
-1. grava ou atualiza os pontos alterados (pontos removidos são mantidos, porque
-   o histórico depende deles);
+1. grava ou atualiza os pontos ativos; pontos removidos ficam inativos para novas
+   solicitações e permanecem no banco para preservar o histórico;
 2. desvincula os coletores locais cujo custom não existe mais (é preciso
    provisionar de novo);
 3. atualiza status e coletor das coletas `pending`, `assigned` e `in_service`.
@@ -141,9 +141,9 @@ As rodadas não se sobrepõem. Se uma demorar, a seguinte é pulada.
 - **Atraso de até 5 s** entre uma mudança na EcoRota e o estado local. Na
   confirmação, a API envia o `complete` mesmo que o estado local ainda diga
   `assigned`; a EcoRota decide se o coletor já chegou.
-- **Pontos de recompensa:** a conclusão ainda não dispara crédito. O
-  `RewardService` já garante no máximo um crédito por coleta, mas a regra de
-  pontuação está pendente.
+- **Pontos e badges:** cada coleta concluída gera 1 ponto para o morador. O
+  crédito ocorre no máximo uma vez por coleta e a sincronização recupera créditos
+  pendentes. Badges são liberados após 1, 5 e 10 coletas concluídas.
 - **Um coletor custom por usuário coletor**, cadastrado por script, e não por
   tela, para não ocupar vagas por acidente.
 - **Vínculo do coletor é local a cada banco.** O "Coletor Demo" já existe na

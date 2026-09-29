@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 
 import { EcoRotaRejectedError } from '../integrations/ecorota-client.js'
+import { RewardService } from './reward-service.js'
 import type {
   EcoRotaCollector,
   EcoRotaGateway,
@@ -56,6 +57,7 @@ export class EcoRotaSyncService {
     const points = await this.syncPoints(snapshot.points)
     const collectorsUnlinked = await this.syncCollectors(snapshot.collectors)
     const requests = await this.syncRequests(snapshot.requests)
+    await new RewardService(this.prisma).creditPendingCompletedCollections()
     return { points, collectorsUnlinked, ...requests }
   }
 
@@ -67,9 +69,9 @@ export class EcoRotaSyncService {
     for (const point of points) {
       const [longitude, latitude] = point.coordinates
       const current = existing.get(point.id)
-      if (current && current.name === point.name && current.kind === point.kind &&
+      if (current && current.name === point.name && current.kind === point.kind && current.active &&
           current.longitude === longitude && current.latitude === latitude) continue
-      const data = { name: point.name, kind: point.kind, longitude, latitude }
+      const data = { name: point.name, kind: point.kind, longitude, latitude, active: true }
       await this.prisma.collectionPoint.upsert({
         where: { id: point.id },
         update: data,
@@ -77,7 +79,11 @@ export class EcoRotaSyncService {
       })
       changed++
     }
-    // Points missing upstream are kept: past collections still reference them.
+    // Keep historical point records, but do not offer absent points for new requests.
+    await this.prisma.collectionPoint.updateMany({
+      where: { id: { notIn: points.map((point) => point.id) }, active: true },
+      data: { active: false },
+    })
     return changed
   }
 

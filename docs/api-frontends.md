@@ -1,8 +1,8 @@
 # API para os front-ends
 
 Base local: `http://localhost:3333/api/v1`. Esta página distingue rotas que já
-funcionam das rotas cujo contrato foi definido, mas cuja implementação ainda
-depende da integração EcoRota ou da regra de pontuação.
+funcionam das rotas ainda planejadas. A aplicação pode rodar localmente com
+banco PostgreSQL hospedado no Supabase.
 
 ## Convenções compartilhadas
 
@@ -42,11 +42,16 @@ depende da integração EcoRota ou da regra de pontuação.
 | GET | `/collection-points/:id` | Autenticado | `200`, ponto local |
 | POST | `/collections` | Morador | `201`, coleta criada |
 | GET | `/collections` | Morador | `200`, histórico próprio paginado |
+| GET | `/collections/dashboard` | Morador | `200`, indicadores e coletas ativas |
 | GET | `/collections/:id` | Morador proprietário | `200`, coleta própria |
 | POST | `/collections/:id/cancel` | Morador proprietário | `200`, coleta atualizada |
 | PATCH | `/collectors/me/availability` | Coletor | `200`, coletor atualizado |
 | GET | `/collectors/me/assignment` | Coletor | `200`, coleta atribuída ou `null` |
+| GET | `/collectors/me/collections` | Coletor | `200`, agenda do dia ou coletas concluídas, paginadas |
+| GET | `/collectors/me/collections/:id` | Coletor atribuído | `200`, detalhe da coleta |
+| GET | `/collectors/me/summary` | Coletor | `200`, total concluído e pontos frequentes |
 | POST | `/collections/:id/complete` | Coletor atribuído | `200`, coleta concluída |
+| GET | `/rewards/balance` | Morador | `200`, pontos e total de coletas concluídas |
 
 ### Login para ambos os perfis
 
@@ -169,6 +174,14 @@ coletas do morador autenticado, da mais recente para a mais antiga. `cursor` e
 `status` são opcionais; `status` aceita os sete estados acima.
 `nextCursor: null` indica fim da lista.
 
+O filtro `stage=active` reúne `scheduled`, `pending`, `assigned`,
+`in_service` e `integration_failed`; `stage=finished` reúne `completed` e
+`cancelled`. Quando `status` e `stage` são enviados juntos, `status` prevalece.
+
+`GET /collections/dashboard` fornece `total`, `active`, `completed`,
+`cancelled`, `materialCounts` e até três `activeCollections`. Os números de
+materiais contam registros, não peso.
+
 `POST /collections/:id/cancel` não recebe corpo. Coletas `scheduled` ou
 `integration_failed` sem identificador externo são canceladas localmente, desde
 que o bloqueio de envio esteja livre ou expirado. Para `pending` e `assigned`,
@@ -206,20 +219,35 @@ atendimentos, mas precisa concluir os já atribuídos.
 (`assigned` ou `in_service`, no mesmo formato do morador) ou `null`. Consulte a
 cada 5 s.
 
+`GET /collectors/me/collections?view=today&dayStart=<ISO>&dayEnd=<ISO>` lista
+atendimentos `assigned` e `in_service` do coletor no intervalo
+`dayStart <= data < dayEnd`. Para uma agenda local, envie o início de hoje e
+o início de amanhã com fuso explícito. Sem `scheduledAt`, usa `createdAt`.
+`view=completed` retorna o histórico concluído do próprio coletor; ambas as
+listas aceitam `limit` e `cursor`. O detalhe em
+`GET /collectors/me/collections/:id` retorna 404 para coletas de outro
+coletor. `GET /collectors/me/summary` retorna `totalCompleted` e
+`frequentPoints`, ordenados pela frequência das coletas concluídas.
+
 `POST /collections/:id/complete` não recebe corpo. Só funciona depois que o
 coletor chega ao ponto (`in_service` na EcoRota). Antes disso, ou se a coleta
 já foi concluída, a API responde 409 `COLLECTION_NOT_COMPLETABLE`. Coleta de
 outro coletor responde 403. O coletor não cancela solicitações e
 `GET /collections/:id` continua exclusivo do morador.
 
-## Pontos: regra ainda pendente
+## Pontos e badges
 
-`GET /rewards/balance` e `GET /rewards/transactions` também são contratos
-definidos, mas ainda respondem 404. O saldo deverá retornar `data.balance`
-como inteiro; o extrato deverá ser paginado por cursor. A proteção
-interna contra crédito duplicado já existe, mas **não calcula pontos nem
-dispara créditos automaticamente**. A fórmula e a integração da task 14 serão
-decididas depois pelo grupo.
+Cada coleta concluída concede **1 ponto** ao morador, inclusive quando a EcoRota
+usa um coletor automático. O crédito é registrado no máximo uma vez por coleta.
+A sincronização recupera créditos pendentes após uma falha temporária.
 
-Os schemas executáveis estão em `backend/src/contracts`; esta página deve ser
-atualizada quando as rotas pendentes forem implementadas.
+`GET /rewards/balance` devolve:
+
+```json
+{ "data": { "balance": 5, "completedCollections": 5 } }
+```
+
+O painel do morador libera badges após **1, 5 e 10 coletas concluídas**. As
+metas são calculadas a partir de `completedCollections`, para não depender de
+um eventual resgate de pontos no futuro. `GET /rewards/transactions` continua
+planejado e ainda responde 404; o MVP atual não permite resgatar pontos.

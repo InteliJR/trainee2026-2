@@ -1,0 +1,19 @@
+.page { display: grid; gap: 26px; max-width: 1100px; margin: 0 auto; padding: 38px 40px 52px; }
+.heading h1, .heading p { margin: 0; }
+.eyebrow { color: var(--color-muted); font: 10px var(--font-mono); letter-spacing: .1em; }
+.heading h1 { margin-block: 8px; color: var(--color-forest); font-size: clamp(29px, 3vw, 38px); font-weight: 500; }
+.heading > p:last-child { color: var(--color-muted); }
+.card { display: grid; max-width: 780px; padding: 32px; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface); }
+.identity { display: flex; align-items: center; gap: 18px; padding-bottom: 26px; border-bottom: 1px solid var(--color-border); }
+.avatar { display: grid; width: 60px; height: 60px; place-items: center; border-radius: 50%; color: var(--color-canopy); background: var(--color-mist); }
+.identity h2, .identity p { margin: 0; }
+.identity h2 { font-size: 23px; font-weight: 500; color: var(--color-forest); }
+.identity p { color: var(--color-muted); font-size: 13px; }
+.details { display: grid; gap: 0; margin: 0; }
+.details > div { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 18px; padding: 20px 0; border-bottom: 1px solid var(--color-border); }
+.details > div:last-child { border: 0; }
+.details dt { color: var(--color-muted); font: 11px var(--font-mono); }
+.details dd { margin: 0; color: var(--color-forest); overflow-wrap: anywhere; }
+@media (max-width: 1100px) { .page { padding-inline: 28px; } }
+@media (max-width: 800px) { .page { padding: 28px 20px 40px; } }
+@media (max-width: 520px) { .card { padding: 20px; } .details > div { grid-template-columns: 1fr; gap: 6px; } }
