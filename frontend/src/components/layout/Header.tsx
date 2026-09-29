@@ -29,11 +29,13 @@ export default function Header() {
             <NavLink to="/coletor" end className={({ isActive }) => isActive || onCollectionDetail ? 'active-tab' : ''}><Icon name="truck" />Atendimento<Icon name="arrow" size={16} /></NavLink>
             <NavLink to="/coletor/agenda"><Icon name="calendar" />Agenda<Icon name="arrow" size={16} /></NavLink>
             <NavLink to="/coletor/realizadas"><Icon name="check" />Realizadas<Icon name="arrow" size={16} /></NavLink>
+            <NavLink to="/coletor/dashboard"><Icon name="grid" />Painel<Icon name="arrow" size={16} /></NavLink>
             <NavLink to="/coletor/perfil"><Icon name="user" />Perfil<Icon name="arrow" size={16} /></NavLink>
           </> : <>
             <NavLink to={homePath} end className={({ isActive }) => isActive || onCollectionDetail ? 'active-tab' : ''}><Icon name="box" />Coletas<Icon name="arrow" size={16} /></NavLink>
             <NavLink to="/morador/evolucao"><Icon name="history" />Evolução<Icon name="arrow" size={16} /></NavLink>
             <NavLink to="/morador/conquistas"><Icon name="award" />Conquistas<Icon name="arrow" size={16} /></NavLink>
+            <NavLink to="/morador/dashboard"><Icon name="grid" />Painel<Icon name="arrow" size={16} /></NavLink>
             <NavLink to="/morador/perfil"><Icon name="user" />Perfil<Icon name="arrow" size={16} /></NavLink>
           </>}
         </nav>

@@ -28,8 +28,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     logger: loggerEnabled ? { level: config.LOG_LEVEL } : false,
   })
 
-  await app.register(cors, { origin: config.CORS_ORIGIN })
+  await app.register(cors, {
+    origin: config.CORS_ORIGIN,
+    methods: ['GET', 'HEAD', 'POST', 'PATCH'],
+  })
   registerErrorHandlers(app)
+
+  // The front-ends poll every 5 s expecting fresh state; without this, a
+  // browser can serve a stale cached response instead of hitting the network.
+  app.addHook('onSend', async (_request, reply) => {
+    reply.header('Cache-Control', 'no-store')
+  })
 
   const prisma = options.prisma ?? createPrisma(config)
   // The credential stays in the backend: only this client ever reads it.

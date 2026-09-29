@@ -45,6 +45,7 @@ banco PostgreSQL hospedado no Supabase.
 | GET | `/collections/dashboard` | Morador | `200`, indicadores e coletas ativas |
 | GET | `/collections/:id` | Morador proprietário | `200`, coleta própria |
 | POST | `/collections/:id/cancel` | Morador proprietário | `200`, coleta atualizada |
+| GET | `/collectors/me` | Coletor | `200`, perfil do coletor |
 | PATCH | `/collectors/me/availability` | Coletor | `200`, coletor atualizado |
 | GET | `/collectors/me/assignment` | Coletor | `200`, coleta atribuída ou `null` |
 | GET | `/collectors/me/collections` | Coletor | `200`, agenda do dia ou coletas concluídas, paginadas |
@@ -197,6 +198,9 @@ O coletor precisa estar vinculado a um coletor custom da EcoRota. Isso é feito
 uma vez pelo back-end com `npm run ecorota:provision-collector -- <email>`. Sem
 esse vínculo, as rotas abaixo respondem 404 (disponibilidade) ou `null`
 (atribuição).
+
+`GET /collectors/me` devolve o mesmo formato de `PATCH /collectors/me/availability`,
+sem alterar o estado. Sem vínculo com a EcoRota, responde 404.
 
 `PATCH /collectors/me/availability` recebe `{ "available": true }` e devolve:
 
