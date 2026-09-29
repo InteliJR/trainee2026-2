@@ -4,23 +4,28 @@ Plataforma web para organizar solicitações de coleta de materiais recicláveis
 
 ## Estado atual
 
-O back-end já oferece autenticação demonstrativa, rotas do morador, agendamento, cancelamento e histórico sobre dados locais. O cliente HTTP e a sincronização com a EcoRota serão implementados por Glauco.
+O fluxo do morador (escolher ponto, solicitar, acompanhar, cancelar e consultar
+o histórico) e a sincronização com a API EcoRota funcionam de ponta a ponta. O
+coletor visualiza o atendimento atual e a conclusão está pronta no back-end,
+mas duas telas do coletor ainda dependem de rotas que faltam (perfil e detalhe
+do atendimento). Pontos e recompensas aguardam a regra de pontuação. O painel
+da EcoRota não foi iniciado. Detalhes em
+[docs/projeto-ecorota.md](docs/projeto-ecorota.md), seção 14.
 
-Decisões estabelecidas:
+Tecnologias:
 
-- front-end em TypeScript;
-- back-end em Node.js, TypeScript e Fastify;
-- PostgreSQL;
-- Prisma ORM 7 estável;
-- Vitest;
-- autenticação inicial com usuários e tokens de demonstração;
-- integração EcoRota exclusivamente pelo back-end.
+- front-end: React 19, TypeScript, Vite, React Router e CSS Modules;
+- back-end: Node.js 22+, TypeScript e Fastify 5;
+- PostgreSQL 17 com Prisma ORM 7;
+- Zod para contratos e Vitest para testes;
+- autenticação inicial com contas e tokens de demonstração;
+- integração EcoRota exclusivamente pelo back-end, com polling a cada 5 s.
 
 Decisões pendentes:
 
-- stack complementar do front-end;
-- polling, WebSocket ou estratégia híbrida;
+- regra de pontuação;
 - inclusão do painel do gestor no MVP;
+- migração para JWT;
 - estratégia de hospedagem.
 
 ## Documentação
@@ -39,7 +44,10 @@ Ela contém:
 - modelagem do banco;
 - integração EcoRota;
 - contrato inicial da API;
-- critérios de conclusão.
+- testes, critérios de conclusão, instruções de execução;
+- limitações, hipóteses e próximos passos.
+
+A integração com a API EcoRota está em [docs/integracao-ecorota.md](docs/integracao-ecorota.md).
 
 ## Estrutura inicial
 
@@ -120,3 +128,30 @@ npm start
 
 As variáveis são validadas na inicialização. Consulte `backend/.env.example` para a
 lista completa e não versione arquivos `.env` nem credenciais reais.
+
+## Executando o front-end
+
+Com o back-end no ar (ou usando os dados fictícios):
+
+~~~bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+~~~
+
+A aplicação abre em `http://localhost:5173`. `VITE_USE_MOCKS=true` (padrão)
+usa dados em memória; entre com `resident@example.com` ou
+`collector@example.com` e a senha `demo-password`. Com `VITE_USE_MOCKS=false`,
+o front-end usa a API local em `VITE_API_URL` e o login é o das contas do seed.
+
+Comandos úteis: `npm run typecheck`, `npm run lint`, `npm test` e `npm run build`.
+
+Para ativar a integração real, preencha `ECOROTA_API_TOKEN` em `backend/.env` e
+vincule o coletor demo:
+
+~~~bash
+cd backend
+npm run ecorota:status
+npm run ecorota:provision-collector -- demo-collector@ecorota.local
+~~~
