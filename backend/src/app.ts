@@ -34,6 +34,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   })
   registerErrorHandlers(app)
 
+  // The front-ends poll every 5 s expecting fresh state; without this, a
+  // browser can serve a stale cached response instead of hitting the network.
+  app.addHook('onSend', async (_request, reply) => {
+    reply.header('Cache-Control', 'no-store')
+  })
+
   const prisma = options.prisma ?? createPrisma(config)
   // The credential stays in the backend: only this client ever reads it.
   const ecorota = options.ecorota ?? (config.ECOROTA_API_TOKEN
