@@ -85,6 +85,11 @@ export function registerApiRoutes(app: FastifyInstance, deps: ApiDependencies): 
     return { data: await rewards.getSummary(user.id) }
   })
 
+  app.get('/api/v1/collectors/me', async (request) => {
+    const user = await collector(request)
+    return { data: await collectors.getCurrent(user.id) }
+  })
+
   app.patch('/api/v1/collectors/me/availability', async (request) => {
     const user = await collector(request)
     const { available } = updateAvailabilityInputSchema.parse(request.body)

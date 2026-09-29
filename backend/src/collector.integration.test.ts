@@ -138,6 +138,24 @@ describe('collector operation and EcoRota sync', () => {
     gateway.collectors.delete(existing.id)
   })
 
+  it('reads the current collector profile only for registered collectors', async () => {
+    const profile = await app.inject({
+      method: 'GET', url: '/api/v1/collectors/me', headers: auth('collector'),
+    })
+    expect(profile.statusCode).toBe(200)
+    expect(profile.json().data).toEqual({ id: users.collector.id, name: 'collector', available: false, status: 'unavailable' })
+
+    const unregistered = await app.inject({
+      method: 'GET', url: '/api/v1/collectors/me', headers: auth('otherCollector'),
+    })
+    expect(unregistered.statusCode).toBe(404)
+
+    const resident = await app.inject({
+      method: 'GET', url: '/api/v1/collectors/me', headers: auth('resident'),
+    })
+    expect(resident.statusCode).toBe(403)
+  })
+
   it('changes availability only for registered collectors', async () => {
     const on = await app.inject({
       method: 'PATCH', url: '/api/v1/collectors/me/availability', headers: auth('collector'),

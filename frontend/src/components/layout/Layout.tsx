@@ -12,6 +12,7 @@ function pageLabel(pathname: string): string {
   if (pathname.includes('/realizadas')) return 'Coletas realizadas'
   if (pathname.includes('/evolucao') || pathname.includes('/historico')) return 'Evolução'
   if (pathname.includes('/conquistas')) return 'Conquistas'
+  if (pathname.includes('/dashboard')) return 'Painel EcoRota'
   if (pathname.includes('/perfil')) return 'Meu perfil'
   return pathname.startsWith('/coletor') ? 'Atendimento atual' : 'Coletas'
 }

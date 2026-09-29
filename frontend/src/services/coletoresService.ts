@@ -19,7 +19,6 @@ function getMockCurrentCollector(): Collector {
 export async function getCurrentCollector(): Promise<DataResponse<Collector>> {
   if (USE_MOCKS) return { data: getMockCurrentCollector() }
 
-  // Provisional: GET /collectors/me is not yet part of docs/projeto-ecorota.md section 10.
   return get<DataResponse<Collector>>('/collectors/me')
 }
 

@@ -18,7 +18,6 @@ import ProfileHomeRedirect from './ProfileHomeRedirect'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
-  { path: '/ecorota/dashboard', element: <EcoRotaDashboard /> },
   {
     element: (
       <ProtectedRoute allowedRoles={['resident', 'collector']}>
@@ -41,6 +40,7 @@ export const router = createBrowserRouter([
               { path: 'historico', element: <Navigate to='/morador/evolucao' replace /> },
               { path: 'evolucao', element: <HistoricoColetas /> },
               { path: 'conquistas', element: <Conquistas /> },
+              { path: 'dashboard', element: <EcoRotaDashboard /> },
               { path: 'perfil', element: <PerfilMorador /> },
               { path: 'solicitar/:pontoId', element: <SolicitarColeta /> },
               { path: 'coletas/:id', element: <AcompanharColeta /> },
@@ -59,6 +59,7 @@ export const router = createBrowserRouter([
               { path: 'perfil', element: <PerfilColetor /> },
               { path: 'agenda', element: <AgendaColetor /> },
               { path: 'realizadas', element: <ColetasRealizadas /> },
+              { path: 'dashboard', element: <EcoRotaDashboard /> },
               { path: 'coletas/:id', element: <DetalheAtendimento /> },
             ],
           },
