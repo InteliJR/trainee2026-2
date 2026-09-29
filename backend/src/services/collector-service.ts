@@ -10,6 +10,29 @@ export class CollectorService {
     private readonly ecorota: EcoRotaGateway,
   ) {}
 
+  async getCurrent(userId: string): Promise<Collector> {
+    const collector = await this.prisma.collector.findUnique({
+      where: { userId },
+      include: { user: true },
+    })
+    const remote = collector?.ecorotaCollectorId
+      ? (await this.ecorota.listCollectors()).find((item) => item.id === collector.ecorotaCollectorId)
+      : undefined
+    if (!collector?.ecorotaCollectorId || !remote) {
+      throw new AppError({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Collector is not registered in EcoRota',
+        statusCode: 404,
+      })
+    }
+    return collectorSchema.parse({
+      id: userId,
+      name: collector.user.name,
+      available: remote.available,
+      status: remote.status,
+    })
+  }
+
   async setAvailability(userId: string, available: boolean): Promise<Collector> {
     const collector = await this.prisma.collector.findUnique({
       where: { userId },

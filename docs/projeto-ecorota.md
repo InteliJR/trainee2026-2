@@ -260,6 +260,7 @@ O guia operacional para ambos os front-ends está em `docs/api-frontends.md`.
 | GET | `/api/v1/collections` | Morador | Histórico próprio com cursor |
 | GET | `/api/v1/collections/:id` | Morador proprietário | Detalha coleta própria |
 | POST | `/api/v1/collections/:id/cancel` | Morador proprietário | Cancela antes de `in_service` |
+| GET | `/api/v1/collectors/me` | Coletor | Perfil do coletor autenticado |
 | PATCH | `/api/v1/collectors/me/availability` | Coletor | Altera disponibilidade |
 | GET | `/api/v1/collectors/me/assignment` | Coletor | Coleta atribuída ou `data: null` |
 | POST | `/api/v1/collections/:id/complete` | Coletor atribuído | Confirma coleta em `in_service` |
