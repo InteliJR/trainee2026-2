@@ -2,18 +2,21 @@ import type { Collection } from '../../types'
 
 const resident = {
   id: '10000000-0000-4000-8000-000000000001',
-  name: 'Marina Costa',
+  name: 'Morador Demo',
 }
 
 const collector = {
   id: '20000000-0000-4000-8000-000000000001',
-  name: 'Rafael Lima',
+  name: 'Coletor Demo',
 }
 
 const collectionPoint = {
   id: '30000000-0000-4000-8000-000000000001',
   name: 'Praça das Palmeiras',
 }
+
+const demoCreatedAt = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+const demoScheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 
 const baseCollection: Omit<Collection, 'id' | 'status'> = {
   resident,
@@ -23,8 +26,8 @@ const baseCollection: Omit<Collection, 'id' | 'status'> = {
   scheduledAt: null,
   notes: null,
   pointsAwarded: null,
-  createdAt: '2026-09-25T10:00:00.000Z',
-  updatedAt: '2026-09-25T10:00:00.000Z',
+  createdAt: demoCreatedAt,
+  updatedAt: demoCreatedAt,
 }
 
 export const mockCollections: Collection[] = [
@@ -32,7 +35,7 @@ export const mockCollections: Collection[] = [
     ...baseCollection,
     id: '40000000-0000-4000-8000-000000000001',
     status: 'scheduled',
-    scheduledAt: '2026-09-28T12:00:00.000Z',
+    scheduledAt: demoScheduledAt,
   },
   {
     ...baseCollection,
@@ -56,7 +59,7 @@ export const mockCollections: Collection[] = [
     id: '40000000-0000-4000-8000-000000000005',
     status: 'completed',
     collector,
-    pointsAwarded: 15,
+    pointsAwarded: 1,
   },
   {
     ...baseCollection,

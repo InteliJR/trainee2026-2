@@ -53,7 +53,10 @@ export function advanceMockCollectorArrival(
 export async function createCollection(
   input: CreateCollectionInput,
 ): Promise<DataResponse<Collection>> {
-  if (!USE_MOCKS) return post<DataResponse<Collection>>('/collections', input)
+  if (!USE_MOCKS)
+    return post<DataResponse<Collection>>('/collections', input, {
+      timeoutMs: 30_000,
+    })
 
   const point = mockCollectionPoints.find(
     ({ id }) => id === input.collectionPointId,
@@ -93,13 +96,15 @@ export async function listCollections(
     if (query?.limit !== undefined)
       searchParams.set('limit', String(query.limit))
     if (query?.status) searchParams.set('status', query.status)
+    if (query?.stage) searchParams.set('stage', query.stage)
     const suffix = searchParams.size ? `?${searchParams.toString()}` : ''
     return get<CollectionListResponse>(`/collections${suffix}`)
   }
 
-  const matching = query?.status
-    ? mockCollections.filter(({ status }) => status === query.status)
-    : mockCollections
+  const active = ['scheduled', 'pending', 'assigned', 'in_service', 'integration_failed']
+  const matching = mockCollections.filter(({ status }) =>
+    query?.status ? status === query.status : query?.stage === 'active' ? active.includes(status) : query?.stage === 'finished' ? !active.includes(status) : true
+  )
   const start = Math.max(0, Number.parseInt(query?.cursor ?? '0', 10) || 0)
   const limit = query?.limit ?? 20
   const data = matching.slice(start, start + limit)
@@ -128,7 +133,11 @@ export async function cancelCollection(
     )
   }
   const collection = findMockCollection(id)
-  if (!['scheduled', 'pending', 'assigned'].includes(collection.status)) {
+  if (
+    !['scheduled', 'integration_failed', 'pending', 'assigned'].includes(
+      collection.status,
+    )
+  ) {
     throw new ApiError({
       code: 'COLLECTION_NOT_CANCELLABLE',
       message: 'Esta coleta não pode mais ser cancelada.',
@@ -161,7 +170,7 @@ export async function completeCollection(
     })
   }
   collection.status = 'completed'
-  collection.pointsAwarded = collection.pointsAwarded ?? 15
+  collection.pointsAwarded = collection.pointsAwarded ?? 1
   collection.updatedAt = new Date().toISOString()
   return { data: collection }
 }

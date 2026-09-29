@@ -1,6 +1,6 @@
 export type SyncStrategy = (onTick: () => void) => () => void
 
-export const DEFAULT_SYNC_INTERVAL_MS = 15_000
+export const DEFAULT_SYNC_INTERVAL_MS = 5_000
 
 export function createPollingStrategy(
   intervalMs = DEFAULT_SYNC_INTERVAL_MS,

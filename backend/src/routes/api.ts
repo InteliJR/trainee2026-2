@@ -4,6 +4,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 import type { Environment } from '../config/env.js'
 import {
   collectionListQuerySchema,
+  collectorCollectionQuerySchema,
   createCollectionInputSchema,
   idParamsSchema,
   loginInputSchema,
@@ -14,6 +15,7 @@ import { AuthService } from '../services/auth-service.js'
 import { CollectionService } from '../services/coletaService.js'
 import { CollectorService } from '../services/collector-service.js'
 import { PointService } from '../services/pontosService.js'
+import { RewardService } from '../services/reward-service.js'
 
 export type ApiDependencies = {
   prisma: PrismaClient
@@ -26,6 +28,7 @@ export function registerApiRoutes(app: FastifyInstance, deps: ApiDependencies): 
   const points = new PointService(deps.prisma)
   const collections = new CollectionService(deps.prisma, deps.ecorota, points)
   const collectors = new CollectorService(deps.prisma, deps.ecorota)
+  const rewards = new RewardService(deps.prisma)
   const resident = (request: FastifyRequest) => auth.authenticate(request.headers.authorization, 'resident')
   const collector = (request: FastifyRequest) => auth.authenticate(request.headers.authorization, 'collector')
 
@@ -60,6 +63,11 @@ export function registerApiRoutes(app: FastifyInstance, deps: ApiDependencies): 
     return collections.list(user.id, query)
   })
 
+  app.get('/api/v1/collections/dashboard', async (request) => {
+    const user = await resident(request)
+    return { data: await collections.dashboardForResident(user.id) }
+  })
+
   app.get('/api/v1/collections/:id', async (request) => {
     const user = await resident(request)
     const { id } = idParamsSchema.parse(request.params)
@@ -72,6 +80,11 @@ export function registerApiRoutes(app: FastifyInstance, deps: ApiDependencies): 
     return { data: await collections.cancel(user.id, id) }
   })
 
+  app.get('/api/v1/rewards/balance', async (request) => {
+    const user = await resident(request)
+    return { data: await rewards.getSummary(user.id) }
+  })
+
   app.patch('/api/v1/collectors/me/availability', async (request) => {
     const user = await collector(request)
     const { available } = updateAvailabilityInputSchema.parse(request.body)
@@ -81,6 +94,23 @@ export function registerApiRoutes(app: FastifyInstance, deps: ApiDependencies): 
   app.get('/api/v1/collectors/me/assignment', async (request) => {
     const user = await collector(request)
     return { data: await collections.assignmentFor(user.id) }
+  })
+
+  app.get('/api/v1/collectors/me/collections', async (request) => {
+    const user = await collector(request)
+    const query = collectorCollectionQuerySchema.parse(request.query)
+    return collections.listForCollector(user.id, query)
+  })
+
+  app.get('/api/v1/collectors/me/collections/:id', async (request) => {
+    const user = await collector(request)
+    const { id } = idParamsSchema.parse(request.params)
+    return { data: await collections.getForCollector(user.id, id) }
+  })
+
+  app.get('/api/v1/collectors/me/summary', async (request) => {
+    const user = await collector(request)
+    return { data: await collections.summaryForCollector(user.id) }
   })
 
   app.post('/api/v1/collections/:id/complete', async (request) => {

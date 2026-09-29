@@ -21,3 +21,18 @@
   justify-content: center;
   padding: 4px 0 12px;
 }
+
+.wrapper > div:has(select) {
+  max-width: 280px;
+}
+.items {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+@media (max-width: 1100px) {
+  .items {
+    grid-template-columns: 1fr;
+  }
+}
+.stageFilters { display: flex; flex-wrap: wrap; gap: 8px; }
+.stageFilters > button { min-width: 94px; min-height: 39px; padding: 8px 14px; }

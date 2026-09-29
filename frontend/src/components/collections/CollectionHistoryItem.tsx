@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+import Icon from '../ui/Icon'
 import type { Collection } from '../../types'
 import { Card, StatusBadge } from '../ui'
 import {
@@ -20,7 +22,9 @@ export default function CollectionHistoryItem({
     <Card className={styles.item}>
       <div className={styles.heading}>
         <div className={styles.location}>
-          <span className={styles.label}>Ponto de coleta</span>
+          <span className={styles.label}>
+            <Icon name="pin" size={14} /> PONTO DE COLETA
+          </span>
           <h2>{collection.collectionPoint.name}</h2>
         </div>
         <StatusBadge status={collection.status} />
@@ -47,6 +51,13 @@ export default function CollectionHistoryItem({
               +{collection.pointsAwarded} pontos
             </span>
           )}
+        <Link
+          className={styles.detailLink}
+          to={`/morador/coletas/${collection.id}`}
+        >
+          Acompanhar coleta
+          <Icon name="arrow" size={15} />
+        </Link>
       </div>
     </Card>
   )

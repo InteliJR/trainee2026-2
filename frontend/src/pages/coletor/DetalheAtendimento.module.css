@@ -1,17 +1,24 @@
 .page {
   display: grid;
   gap: 24px;
-  max-width: 860px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 36px 24px 52px;
+  padding: 38px 40px 52px;
 }
 
 .backLink {
+  display: inline-flex;
+  justify-self: start;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
   color: var(--color-canopy);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
+}
+.backLink:hover {
   text-decoration: underline;
-  text-underline-offset: 3px;
+  text-underline-offset: 4px;
 }
 
 .heading {
@@ -26,15 +33,17 @@
   margin: 0;
   color: var(--color-forest);
   font-family: var(--font-display);
-  font-size: 30px;
-  font-weight: 600;
+  font-size: clamp(28px, 2.6vw, 36px);
+  line-height: 1.2;
+  letter-spacing: -0.045em;
+  font-weight: 500;
 }
 
 .eyebrow {
   margin: 0;
-  color: var(--color-leaf);
-  font-size: 12px;
-  font-weight: 700;
+  color: var(--color-muted);
+  font: 10px/1.5 var(--font-mono);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -127,5 +136,47 @@
 
   .heading h1 {
     font-size: 25px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .page {
+    padding-inline: 28px;
+  }
+}
+@media (max-width: 800px) {
+  .page {
+    padding: 28px 20px 40px;
+  }
+}
+
+.heading {
+  padding: 28px 30px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  gap: 16px;
+}
+.card {
+  padding: 30px;
+  gap: 26px;
+}
+.section h2 {
+  font-size: 13px;
+}
+.materials li > div span,
+.section time {
+  font: 12px/1.7 var(--font-mono);
+}
+.completionSuccess {
+  padding: 18px;
+  border: 1px solid #c3d5bd;
+  border-radius: 8px;
+  background: var(--color-mist);
+}
+@media (max-width: 600px) {
+  .heading,
+  .card {
+    padding: 22px;
   }
 }

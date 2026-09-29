@@ -1,5 +1,6 @@
 import type {
   AssignmentResponse,
+  Collection,
   Collector,
   CollectorResponse,
   UpdateAvailabilityInput,
@@ -45,4 +46,13 @@ export async function getCurrentAssignment(): Promise<AssignmentResponse> {
   return {
     data: assignment ? advanceMockCollectorArrival(assignment) : null,
   }
+}
+
+export async function getCollectorCollection(id: string): Promise<DataResponse<Collection>> {
+  if (!USE_MOCKS) return get<DataResponse<Collection>>(`/collectors/me/collections/${encodeURIComponent(id)}`)
+  const collection = mockCollections.find((item) => item.id === id && item.collector?.id === getMockCurrentCollector().id)
+  if (!collection) {
+    throw new Error('Este atendimento não está atribuído a você.')
+  }
+  return { data: advanceMockCollectorArrival(collection) }
 }

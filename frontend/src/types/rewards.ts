@@ -3,6 +3,7 @@ import type { PaginatedResponse } from './common'
 
 export type RewardBalance = {
   balance: number
+  completedCollections: number
 }
 
 export type RewardTransactionKind = 'credit' | 'debit'

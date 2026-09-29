@@ -88,6 +88,7 @@ model CollectionPoint {
   id          String              @id @db.Uuid
   name        String
   kind        CollectionPointKind
+  active      Boolean             @default(true)
   longitude   Float
   latitude    Float
   collections Collection[]
