@@ -31,3 +31,5 @@ export type {
   ErrorResponse,
   PaginatedResponse,
 } from './common'
+
+export type { ResidentDashboard, CollectorSummary, CollectorCollectionView, CollectorCollectionListResponse } from './dashboard'

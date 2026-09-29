@@ -7,6 +7,7 @@ export type CollectionHistoryStatus = 'idle' | 'loading' | 'error' | 'success'
 type QueryState = {
   cursor?: string
   status?: CollectionStatus
+  stage?: 'active' | 'finished'
   version: number
 }
 
@@ -16,8 +17,10 @@ export type UseCollectionHistoryResult = {
   error: Error | null
   hasMore: boolean
   statusFilter: CollectionStatus | undefined
+  stageFilter: 'active' | 'finished' | undefined
   loadMore: () => void
   setStatusFilter: (status: CollectionStatus | undefined) => void
+  setStageFilter: (stage: 'active' | 'finished' | undefined) => void
   refetch: () => void
 }
 
@@ -43,6 +46,7 @@ export function useCollectionHistory(): UseCollectionHistoryResult {
           cursor: requestedCursor,
           limit: PAGE_SIZE,
           status: query.status,
+          stage: query.stage,
         })
         if (!active) return
 
@@ -72,6 +76,7 @@ export function useCollectionHistory(): UseCollectionHistoryResult {
     error,
     hasMore: nextCursor !== null,
     statusFilter: query.status,
+    stageFilter: query.stage,
     loadMore: () => {
       if (nextCursor === null || status === 'loading') return
       setQuery((current) => ({ ...current, cursor: nextCursor }))
@@ -83,8 +88,16 @@ export function useCollectionHistory(): UseCollectionHistoryResult {
       setStatus('loading')
       setQuery((current) => ({
         status: nextStatus,
+        stage: undefined,
         version: current.version + 1,
       }))
+    },
+    setStageFilter: (nextStage) => {
+      setCollections([])
+      setNextCursor(null)
+      setError(null)
+      setStatus('loading')
+      setQuery((current) => ({ stage: nextStage, version: current.version + 1 }))
     },
     refetch: () => {
       setCollections([])
@@ -93,6 +106,7 @@ export function useCollectionHistory(): UseCollectionHistoryResult {
       setStatus('loading')
       setQuery((current) => ({
         status: current.status,
+        stage: current.stage,
         version: current.version + 1,
       }))
     },

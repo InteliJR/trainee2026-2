@@ -8,15 +8,16 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import type { Collection } from '../../types'
-import {
-  completeCollection,
-  getCollection,
-} from '../../services/coletasService'
+import { completeCollection } from '../../services/coletasService'
 import { ApiError } from '../../services/api-error'
+import { getCollectorCollection } from '../../services/coletoresService'
 import DetalheAtendimento from './DetalheAtendimento'
 
+vi.mock('../../services/coletoresService', () => ({
+  getCollectorCollection: vi.fn(),
+}))
+
 vi.mock('../../services/coletasService', () => ({
-  getCollection: vi.fn(),
   completeCollection: vi.fn(),
   cancelCollection: vi.fn(),
   createCollection: vi.fn(),
@@ -60,7 +61,7 @@ function renderDetails() {
 }
 
 describe('DetalheAtendimento', () => {
-  const getCollectionMock = vi.mocked(getCollection)
+  const getCollectionMock = vi.mocked(getCollectorCollection)
   const completeCollectionMock = vi.mocked(completeCollection)
 
   beforeEach(() => {
@@ -127,7 +128,7 @@ describe('DetalheAtendimento', () => {
   it('refetches when the backend reports the collection is no longer completable', async () => {
     getCollectionMock
       .mockResolvedValueOnce({ data: collection })
-      .mockResolvedValueOnce({ data: { ...collection, status: 'cancelled' } })
+      .mockRejectedValueOnce(new ApiError({ code: 'RESOURCE_NOT_FOUND', message: 'Este atendimento não está mais atribuído a você.', requestId: 'test', status: 404 }))
     completeCollectionMock.mockRejectedValue(
       new ApiError({
         code: 'COLLECTION_NOT_COMPLETABLE',
@@ -144,7 +145,9 @@ describe('DetalheAtendimento', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sim, concluir' }))
 
     expect(
-      await screen.findByText('Esta coleta foi cancelada pelo morador.'),
+      await screen.findByText(
+        'Este atendimento não está mais atribuído a você.',
+      ),
     ).toBeInTheDocument()
     await waitFor(() => expect(getCollectionMock).toHaveBeenCalledTimes(2))
   })

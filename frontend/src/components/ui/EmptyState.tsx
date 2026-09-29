@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import Icon from './Icon'
 import styles from './EmptyState.module.css'
 
 export type EmptyStateProps = {
@@ -18,7 +19,9 @@ export default function EmptyState({
 
   return (
     <section className={classes}>
-      <span className={styles.marker} aria-hidden="true" />
+      <span className={styles.marker}>
+        <Icon name="leaf" size={26} />
+      </span>
       <h2>{title}</h2>
       <p>{description}</p>
       {action && <div className={styles.action}>{action}</div>}

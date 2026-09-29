@@ -7,7 +7,7 @@ export class PointService {
   constructor(private readonly prisma: PrismaClient) {}
 
   async list() {
-    const points = await this.prisma.collectionPoint.findMany({ orderBy: { name: 'asc' } })
+    const points = await this.prisma.collectionPoint.findMany({ where: { active: true }, orderBy: { name: 'asc' } })
     return points.map((point) => collectionPointSchema.parse({
       id: point.id,
       name: point.name,
@@ -17,7 +17,7 @@ export class PointService {
   }
 
   async get(id: string) {
-    const point = await this.prisma.collectionPoint.findUnique({ where: { id } })
+    const point = await this.prisma.collectionPoint.findFirst({ where: { id, active: true } })
     if (!point) {
       throw new AppError({ code: 'RESOURCE_NOT_FOUND', message: 'Collection point not found', statusCode: 404 })
     }

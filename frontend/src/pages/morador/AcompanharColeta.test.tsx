@@ -49,6 +49,31 @@ describe('AcompanharColeta', () => {
     cleanup()
   })
 
+  it('keeps retryable integration failures visible and cancellable', async () => {
+    getCollectionMock.mockResolvedValue({
+      data: {
+        ...completedCollection,
+        status: 'integration_failed',
+        collector: null,
+        pointsAwarded: null,
+      },
+    })
+    render(
+      <MemoryRouter
+        initialEntries={[`/morador/coletas/${completedCollection.id}`]}
+      >
+        <Routes>
+          <Route path="/morador/coletas/:id" element={<AcompanharColeta />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText(/O sistema tentará/)).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Cancelar coleta' }),
+    ).toBeEnabled()
+  })
+
   it('does not offer cancellation for a completed collection', async () => {
     render(
       <MemoryRouter

@@ -53,7 +53,7 @@ describe('resident flow with PostgreSQL', () => {
       DATABASE_URL: databaseUrl,
       ECOROTA_API_URL: 'http://localhost:3334',
       NODE_ENV: 'test',
-      DEMO_PASSWORD: 'demo-password-123',
+      DEMO_PASSWORD: '123456',
     })
     prisma = createPrisma(config)
     await prisma.collectionPoint.create({
@@ -167,7 +167,7 @@ describe('resident flow with PostgreSQL', () => {
     const login = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      payload: { email: 'demo-resident@ecorota.local', password: 'demo-password-123' },
+      payload: { email: 'demo-resident@ecorota.local', password: '123456' },
     })
     expect(login.statusCode).toBe(200)
     expect(login.json().data.user.role).toBe('resident')

@@ -1,122 +1,54 @@
 # EcoRota
 
-Plataforma web para organizar solicitações de coleta de materiais recicláveis em pontos geográficos predefinidos, conectando moradores e coletores por meio de um fluxo confiável e rastreável.
+Aplicação local para moradores solicitarem coletas de recicláveis e coletores acompanharem e concluírem o atendimento atual. O back-end Fastify usa PostgreSQL (inclusive Supabase) e sincroniza a operação com a API EcoRota. O front-end React pode usar dados simulados para desenvolvimento.
 
-## Estado atual
+## Estado do MVP
 
-O back-end já oferece autenticação demonstrativa, rotas do morador, agendamento, cancelamento e histórico sobre dados locais. O cliente HTTP e a sincronização com a EcoRota serão implementados por Glauco.
+- Morador: login demonstrativo, pontos disponíveis, coleta imediata ou agendada, acompanhamento, cancelamento, histórico, 1 ponto por coleta concluída e badges nas metas de 1, 5 e 10 coletas.
+- Coletor: atribuição atual, detalhes e confirmação do atendimento. O histórico do coletor fica para depois.
+- Integração: o back-end envia solicitações e consulta o snapshot EcoRota a cada 5 segundos. A credencial fica somente no back-end.
+- Fora do MVP atual: painel do gestor, resgate de recompensas e hospedagem da aplicação. A aplicação roda localmente; o banco pode ficar no Supabase.
+- A rota de leitura do perfil do coletor (`GET /collectors/me`) ainda não foi implementada. A tela de perfil depende dela.
 
-Decisões estabelecidas:
+## Executar localmente
 
-- front-end em TypeScript;
-- back-end em Node.js, TypeScript e Fastify;
-- PostgreSQL;
-- Prisma ORM 7 estável;
-- Vitest;
-- autenticação inicial com usuários e tokens de demonstração;
-- integração EcoRota exclusivamente pelo back-end.
+Requisitos: Node.js 22+, npm e PostgreSQL acessível. Configure `backend/.env` a partir de `backend/.env.example`, incluindo `DATABASE_URL` do Supabase ou de um PostgreSQL local. Para integração real, configure também `ECOROTA_API_TOKEN` **somente no back-end**. O `compose.yaml` oferece um Postgres local opcional.
 
-Decisões pendentes:
+Para conexões pelo pooler do Supabase (`*.pooler.supabase.com`), o back-end usa o certificado raiz em `backend/certs/supabase-root-2021.crt` e verifica a identidade do servidor por TLS automaticamente. Se o Supabase trocar esse certificado, baixe o novo certificado raiz nas configurações de banco do projeto e informe seu caminho em `sslrootcert` na `DATABASE_URL`.
 
-- stack complementar do front-end;
-- polling, WebSocket ou estratégia híbrida;
-- inclusão do painel do gestor no MVP;
-- estratégia de hospedagem.
+```bash
+cd backend
+npm ci
+npm run db:generate
+npm run db:migrate
+DEMO_PASSWORD='123456' npm run db:seed-demo
+npm run dev
+```
+
+Os comandos acima devem ser executados dentro de `backend/` (se você estiver em `frontend/`, use `cd ../backend`). A migração deve ser aplicada ao banco configurado em `DATABASE_URL`. O seed exige `DEMO_PASSWORD` não vazia e cria `demo-resident@ecorota.local` e `demo-collector@ecorota.local` com a senha indicada. A API fica em `http://localhost:3333`; `GET /health` confirma que o servidor iniciou. Sem token EcoRota, o back-end inicia, mas não sincroniza pontos ou solicitações externas.
+
+Em outro terminal:
+
+```bash
+cd frontend
+npm ci
+cp -n .env.example .env
+npm run dev
+```
+
+O front-end fica em `http://localhost:5173`. Com `VITE_USE_MOCKS=true`, os painéis usam dados simulados e aceitam `demo-resident@ecorota.local` ou `demo-collector@ecorota.local` com a senha `123456`; esse modo não consulta o banco. Para testar o fluxo com o back-end e o banco, defina `VITE_USE_MOCKS=false` em `frontend/.env`, mantenha `VITE_API_URL=http://localhost:3333` e reinicie o Vite. Sem pontos sincronizados da EcoRota, o painel real do morador exibirá a lista vazia; o perfil real do coletor ainda depende de `GET /collectors/me`. O `.env.example` começa em modo mock. Não versione `.env` nem credenciais.
+
+## Verificações
+
+```bash
+(cd backend && npm run typecheck && npm test && npm run build)
+(cd frontend && npm run lint && npm test && npm run build)
+```
+
+Os testes de integração usam um PostgreSQL temporário e um gateway EcoRota simulado. Eles não alteram o banco Supabase configurado.
 
 ## Documentação
 
-A documentação funcional e técnica está em [docs/projeto-ecorota.md](docs/projeto-ecorota.md).
-O guia de rotas para os dois front-ends está em [docs/api-frontends.md](docs/api-frontends.md).
-
-Ela contém:
-
-- visão geral e escopo;
-- requisitos funcionais;
-- regras de negócio;
-- requisitos não funcionais;
-- arquitetura;
-- stack;
-- modelagem do banco;
-- integração EcoRota;
-- contrato inicial da API;
-- critérios de conclusão.
-
-## Estrutura inicial
-
-~~~text
-frontend/
-├── src/
-│   ├── pages/
-│   │   ├── morador/
-│   │   ├── coletor/
-│   │   └── ecorota/
-│   ├── components/
-│   ├── services/
-│   │   └── api.ts
-│   ├── styles/
-│   ├── assets/
-│   ├── App.tsx
-│   └── main.tsx
-└── package.json
-
-backend/
-├── src/
-│   ├── controllers/
-│   ├── services/
-│   ├── integrations/
-│   │   └── ecorota.ts
-│   ├── routes/
-│   ├── config/
-│   │   └── prisma.ts
-│   ├── app.ts
-│   └── server.ts
-├── prisma/
-│   └── schema.prisma
-└── package.json
-~~~
-
-## Executando o back-end
-
-Requisitos: Node.js 22+, npm e Docker com Compose.
-
-~~~bash
-cp .env.example .env
-cp backend/.env.example backend/.env
-docker compose up -d postgres
-cd backend
-npm install
-npm run db:generate
-npm run db:migrate
-DEMO_PASSWORD='escolha-uma-senha-com-12-caracteres' npm run db:seed-demo
-npm run dev
-~~~
-
-A API fica disponível em `http://localhost:3333`. Para verificar a execução, acesse
-`GET /health`. As rotas de pontos leem o banco local; o seed demonstrativo cria
-usuários, mas não cria pontos. Até o cliente HTTP do Glauco ser acoplado,
-nenhuma chamada real à EcoRota é feita. A credencial da equipe deverá ficar
-somente no back-end quando essa integração estiver pronta.
-
-O seed cria `demo-resident@ecorota.local` e `demo-collector@ecorota.local`
-com a senha definida em `DEMO_PASSWORD`. Envie e-mail e senha para
-`POST /api/v1/auth/login` e use o `accessToken` como Bearer token nas demais
-rotas. O processo do servidor tenta despachar coletas agendadas quando chegar
-o horário. O envio efetivo depende do adaptador EcoRota a ser instalado.
-
-Se o adaptador externo estiver ausente ou falhar depois de salvar uma
-solicitação imediata, a criação retorna `integration_failed` e o servidor
-tenta reenviá-la com a mesma referência. O morador consulta a coleta pelo
-`id` local; o cancelamento de uma solicitação já enviada depende do adaptador.
-A atualização dos estados externos também será feita pela integração do Glauco.
-
-Comandos úteis do back-end:
-
-~~~bash
-npm run typecheck
-npm test
-npm run build
-npm start
-~~~
-
-As variáveis são validadas na inicialização. Consulte `backend/.env.example` para a
-lista completa e não versione arquivos `.env` nem credenciais reais.
+- [Escopo e contrato](docs/projeto-ecorota.md)
+- [Rotas para os front-ends](docs/api-frontends.md)
+- [Integração EcoRota](docs/integracao-ecorota.md)

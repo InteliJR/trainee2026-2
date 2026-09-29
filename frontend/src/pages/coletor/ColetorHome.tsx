@@ -42,6 +42,9 @@ export default function ColetorHome() {
         <header className={styles.heading}>
           <p className={styles.eyebrow}>Área do coletor</p>
           <h1>Atendimento atual</h1>
+          <p className={styles.subtitle}>
+            Cada rota conecta materiais a novas possibilidades.
+          </p>
         </header>
         <EmptyState
           title="Nenhuma coleta atribuída"
@@ -61,6 +64,9 @@ export default function ColetorHome() {
       <header className={styles.heading}>
         <p className={styles.eyebrow}>Área do coletor</p>
         <h1>Atendimento atual</h1>
+        <p className={styles.subtitle}>
+          Cada rota conecta materiais a novas possibilidades.
+        </p>
       </header>
       {status === 'error' && (
         <ErrorState
