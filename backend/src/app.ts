@@ -28,7 +28,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     logger: loggerEnabled ? { level: config.LOG_LEVEL } : false,
   })
 
-  await app.register(cors, { origin: config.CORS_ORIGIN })
+  await app.register(cors, {
+    origin: config.CORS_ORIGIN,
+    methods: ['GET', 'HEAD', 'POST', 'PATCH'],
+  })
   registerErrorHandlers(app)
 
   const prisma = options.prisma ?? createPrisma(config)
