@@ -6,6 +6,7 @@ import {
   collectionSchema,
   type Collection,
   type CollectionListQuery,
+  type CollectorCollectionQuery,
   type CreateCollectionInput,
 } from '../contracts/collections.js'
 import { AppError } from '../errors/app-error.js'
@@ -13,6 +14,7 @@ import type { EcoRotaGateway, EcoRotaRequest } from '../integrations/ecorota.js'
 import { EcoRotaRejectedError } from '../integrations/ecorota-client.js'
 import { localCollectorId } from './ecorota-sync-service.js'
 import { PointService } from './pontosService.js'
+import { RewardService } from './reward-service.js'
 
 const collectionInclude = {
   resident: true,
@@ -93,6 +95,9 @@ export class CollectionService {
         lastSyncedAt: new Date(),
       },
     })
+    if (remote.status === 'completed') {
+      await new RewardService(this.prisma).creditCompletedCollectionOnce(id, 1)
+    }
     return this.record(id)
   }
 
@@ -224,7 +229,11 @@ export class CollectionService {
     const records = await this.prisma.collection.findMany({
       where: {
         residentId,
-        ...(query.status ? { status: query.status } : {}),
+        ...(query.status ? { status: query.status } : query.stage ? {
+          status: { in: query.stage === 'active'
+            ? ['scheduled', 'pending', 'assigned', 'in_service', 'integration_failed']
+            : ['completed', 'cancelled'] },
+        } : {}),
         ...(cursor ? {
           OR: [
             { createdAt: { lt: cursor.createdAt } },
@@ -242,6 +251,113 @@ export class CollectionService {
       nextCursor: records.length > query.limit && page.length
         ? encodeCursor(page[page.length - 1]!)
         : null,
+    }
+  }
+
+  async dashboardForResident(residentId: string) {
+    const activeStatuses = ['scheduled', 'pending', 'assigned', 'in_service', 'integration_failed'] as const
+    const [byStatus, byMaterial, activeRecords] = await Promise.all([
+      this.prisma.collection.groupBy({
+        by: ['status'],
+        where: { residentId },
+        _count: { _all: true },
+      }),
+      this.prisma.collectionMaterial.groupBy({
+        by: ['type'],
+        where: { collection: { residentId } },
+        _count: { _all: true },
+      }),
+      this.prisma.collection.findMany({
+        where: { residentId, status: { in: [...activeStatuses] } },
+        include: collectionInclude,
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        take: 3,
+      }),
+    ])
+    const count = (status: string) => byStatus.find((row) => row.status === status)?._count._all ?? 0
+    return {
+      total: byStatus.reduce((total, row) => total + row._count._all, 0),
+      active: activeStatuses.reduce<number>((total, status) => total + count(status), 0),
+      completed: count('completed'),
+      cancelled: count('cancelled'),
+      materialCounts: byMaterial.map((row) => ({ type: row.type, count: row._count._all })),
+      activeCollections: activeRecords.map(publicCollection),
+    }
+  }
+
+  async getForCollector(collectorUserId: string, id: string): Promise<Collection> {
+    const record = await this.prisma.collection.findFirst({
+      where: { id, collector: { userId: collectorUserId } },
+      include: collectionInclude,
+    })
+    if (!record) {
+      throw new AppError({ code: 'RESOURCE_NOT_FOUND', message: 'Collection not found', statusCode: 404 })
+    }
+    return publicCollection(record)
+  }
+
+  async listForCollector(collectorUserId: string, query: CollectorCollectionQuery) {
+    const cursor = query.cursor ? decodeCursor(query.cursor) : null
+    const where: Prisma.CollectionWhereInput = {
+      collector: { userId: collectorUserId },
+      ...(query.view === 'completed'
+        ? { status: 'completed' }
+        : {
+            status: { in: ['assigned', 'in_service'] },
+            OR: [
+              { scheduledAt: { gte: new Date(query.dayStart!), lt: new Date(query.dayEnd!) } },
+              { scheduledAt: null, createdAt: { gte: new Date(query.dayStart!), lt: new Date(query.dayEnd!) } },
+            ],
+          }),
+      ...(cursor ? {
+        AND: [{ OR: [
+          { createdAt: { lt: cursor.createdAt } },
+          { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+        ] }],
+      } : {}),
+    }
+    const records = await this.prisma.collection.findMany({
+      where,
+      include: collectionInclude,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: query.limit + 1,
+    })
+    const page = records.slice(0, query.limit)
+    return {
+      data: page.map(publicCollection),
+      nextCursor: records.length > query.limit && page.length
+        ? encodeCursor(page[page.length - 1]!)
+        : null,
+    }
+  }
+
+  async summaryForCollector(collectorUserId: string) {
+    const where: Prisma.CollectionWhereInput = {
+      collector: { userId: collectorUserId },
+      status: 'completed',
+    }
+    const [totalCompleted, byPoint] = await Promise.all([
+      this.prisma.collection.count({ where }),
+      this.prisma.collection.groupBy({
+        by: ['collectionPointId'],
+        where,
+        _count: { _all: true },
+        orderBy: { _count: { collectionPointId: 'desc' } },
+        take: 5,
+      }),
+    ])
+    const points = await this.prisma.collectionPoint.findMany({
+      where: { id: { in: byPoint.map((item) => item.collectionPointId) } },
+      select: { id: true, name: true },
+    })
+    const names = new Map(points.map((point) => [point.id, point.name]))
+    return {
+      totalCompleted,
+      frequentPoints: byPoint.map((item) => ({
+        id: item.collectionPointId,
+        name: names.get(item.collectionPointId) ?? 'Ponto de coleta',
+        count: item._count._all,
+      })),
     }
   }
 

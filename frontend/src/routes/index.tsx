@@ -1,12 +1,16 @@
-import { createBrowserRouter, Outlet } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import Layout from '../components/layout/Layout'
 import ColetorHome from '../pages/coletor/ColetorHome'
+import AgendaColetor from '../pages/coletor/AgendaColetor'
+import ColetasRealizadas from '../pages/coletor/ColetasRealizadas'
 import DetalheAtendimento from '../pages/coletor/DetalheAtendimento'
 import PerfilColetor from '../pages/coletor/PerfilColetor'
 import Login from '../pages/auth/Login'
 import AcompanharColeta from '../pages/morador/AcompanharColeta'
 import HistoricoColetas from '../pages/morador/HistoricoColetas'
 import MoradorHome from '../pages/morador/MoradorHome'
+import Conquistas from '../pages/morador/Conquistas'
+import PerfilMorador from '../pages/morador/PerfilMorador'
 import SolicitarColeta from '../pages/morador/SolicitarColeta'
 import ProtectedRoute from './ProtectedRoute'
 import ProfileHomeRedirect from './ProfileHomeRedirect'
@@ -32,7 +36,10 @@ export const router = createBrowserRouter([
             element: <Outlet />,
             children: [
               { index: true, element: <MoradorHome /> },
-              { path: 'historico', element: <HistoricoColetas /> },
+              { path: 'historico', element: <Navigate to='/morador/evolucao' replace /> },
+              { path: 'evolucao', element: <HistoricoColetas /> },
+              { path: 'conquistas', element: <Conquistas /> },
+              { path: 'perfil', element: <PerfilMorador /> },
               { path: 'solicitar/:pontoId', element: <SolicitarColeta /> },
               { path: 'coletas/:id', element: <AcompanharColeta /> },
             ],
@@ -48,6 +55,8 @@ export const router = createBrowserRouter([
             children: [
               { index: true, element: <ColetorHome /> },
               { path: 'perfil', element: <PerfilColetor /> },
+              { path: 'agenda', element: <AgendaColetor /> },
+              { path: 'realizadas', element: <ColetasRealizadas /> },
               { path: 'coletas/:id', element: <DetalheAtendimento /> },
             ],
           },

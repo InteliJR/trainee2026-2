@@ -1,6 +1,7 @@
 import type { CollectionPoint } from '../../types'
 import type { CollectionPointsStatus } from '../../hooks/useCollectionPoints'
 import { Button, EmptyState, ErrorState, Loading } from '../ui'
+import Icon from '../ui/Icon'
 import CollectionPointCard from './CollectionPointCard'
 import styles from './CollectionPointList.module.css'
 
@@ -65,8 +66,14 @@ export default function CollectionPointList({
         ))}
       </div>
       <div className={styles.actions}>
+        <span className={styles.selectionHint} aria-live="polite">
+          {selectedId
+            ? points.find((point) => point.id === selectedId)?.name
+            : 'Selecione um ponto para continuar.'}
+        </span>
         <Button disabled={!selectedId} onClick={onContinue}>
           Continuar
+          <Icon name="arrow" size={16} />
         </Button>
       </div>
     </div>

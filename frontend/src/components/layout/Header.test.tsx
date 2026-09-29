@@ -58,22 +58,26 @@ describe('Header profile navigation', () => {
       'aria-current',
       'page',
     )
+    expect(screen.getByRole('link', { name: 'Agenda' })).toHaveAttribute('href', '/coletor/agenda')
+    expect(screen.getByRole('link', { name: 'Realizadas' })).toHaveAttribute('href', '/coletor/realizadas')
     expect(screen.getByText('Rafael Lima')).toBeInTheDocument()
   })
 
-  it('shows only the resident profile link for a resident', () => {
+  it('shows all resident tabs', () => {
     currentUser = resident
     renderHeader('/morador')
 
-    expect(screen.getByRole('link', { name: 'Morador' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Coletas' })).toHaveAttribute(
       'href',
       '/morador',
     )
     expect(
-      screen.queryByRole('link', { name: 'Atendimento' }),
-    ).not.toBeInTheDocument()
+      screen.getByRole('link', { name: 'Evolução' }),
+    ).toHaveAttribute('href', '/morador/evolucao')
+    expect(screen.getByRole('link', { name: 'Conquistas' })).toHaveAttribute('href', '/morador/conquistas')
+    expect(screen.getByRole('link', { name: 'Perfil' })).toHaveAttribute('href', '/morador/perfil')
     expect(
-      screen.queryByRole('link', { name: 'Perfil' }),
+      screen.queryByRole('link', { name: 'Atendimento' }),
     ).not.toBeInTheDocument()
   })
 })

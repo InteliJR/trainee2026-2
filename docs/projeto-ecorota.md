@@ -60,13 +60,12 @@ Pode acompanhar indicadores e o estado geral da operação. A inclusão desse pe
 - Visualização e conclusão de atendimentos pelo coletor.
 - Integração com a EcoRota exclusivamente pelo back-end da equipe.
 
-### 2.2 Decisões pendentes
+### 2.2 Decisões e prioridades
 
 - ~~Polling, WebSocket ou estratégia híbrida.~~ Decidido: polling do snapshot (ver `docs/integracao-ecorota.md`).
-- Inclusão do painel do gestor no MVP.
-- Uso de mapa ou somente lista para seleção dos pontos.
+- Painel do gestor e mapa ficam para depois dos painéis do morador e do coletor.
 - Evolução do modo de demonstração para JWT real após o MVP.
-- Estratégia de hospedagem.
+- A aplicação roda localmente, com o PostgreSQL hospedado no Supabase.
 
 ### 2.3 Fora do escopo inicial
 
@@ -210,8 +209,8 @@ local. `ecorotaRequestId` guarda o vínculo com a solicitação externa. O
 histórico é consultado por morador, ordenado por criação e paginado por cursor.
 A tabela de movimentações possui restrição única por coleta e motivo. O serviço
 de crédito usa uma transação e essa restrição para registrar, no máximo uma
-vez, os pontos de cada coleta concluída; a quantidade de pontos permanece
-indefinida até a decisão da tarefa 14.
+vez, 1 ponto por coleta concluída. Badges são liberados nas metas de 1, 5 e
+10 coletas concluídas.
 
 ## 9. Integração EcoRota
 
@@ -232,8 +231,8 @@ solicitação existente, sem reenviá-la.
 
 Consulta e histórico do morador usam o estado local. Mudanças na EcoRota, como
 atribuição e conclusão, chegam por polling de `GET /v1/snapshot` a cada 5 s. A
-proteção contra créditos duplicados já existe, mas o cálculo e o disparo da
-pontuação aguardam a decisão da tarefa 14.
+pontuação é de 1 ponto por coleta concluída, inclusive por coletor automático.
+O crédito é reconciliado na sincronização e protegido contra duplicidade.
 
 ## 10. Contrato da API interna
 
@@ -259,7 +258,7 @@ O guia operacional para ambos os front-ends está em `docs/api-frontends.md`.
 | GET | `/api/v1/collection-points/:id` | Autenticado | Detalha um ponto |
 | POST | `/api/v1/collections` | Morador | Cria coleta imediata ou agendada |
 | GET | `/api/v1/collections` | Morador | Histórico próprio com cursor |
-| GET | `/api/v1/collections/:id` | Morador proprietário; coletor pendente | Detalha coleta própria |
+| GET | `/api/v1/collections/:id` | Morador proprietário | Detalha coleta própria |
 | POST | `/api/v1/collections/:id/cancel` | Morador proprietário | Cancela antes de `in_service` |
 | PATCH | `/api/v1/collectors/me/availability` | Coletor | Altera disponibilidade |
 | GET | `/api/v1/collectors/me/assignment` | Coletor | Coleta atribuída ou `data: null` |
@@ -267,8 +266,8 @@ O guia operacional para ambos os front-ends está em `docs/api-frontends.md`.
 | GET | `/api/v1/rewards/balance` | Morador | Saldo de pontos |
 | GET | `/api/v1/rewards/transactions` | Morador | Extrato com cursor |
 
-As rotas de recompensas nesta tabela ainda são contratos planejados, não rotas
-disponíveis; `GET /collections/:id` segue exclusivo do morador. Criação retorna HTTP 201; outras operações implementadas
+`GET /rewards/balance` está disponível; `/rewards/transactions` continua
+planejado. `GET /collections/:id` segue exclusivo do morador. Criação retorna HTTP 201; outras operações implementadas
 retornam HTTP 200. Cancelamento devolve a coleta atualizada.
 
 ### 10.3 Autenticação

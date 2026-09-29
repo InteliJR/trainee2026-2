@@ -76,6 +76,7 @@ describe('SolicitarColeta', () => {
     renderRequestForm()
     await screen.findByText(point.name)
 
+    fireEvent.click(screen.getByLabelText('Escolher data futura'))
     fireEvent.click(screen.getByRole('button', { name: 'Solicitar coleta' }))
 
     expect(
@@ -87,6 +88,28 @@ describe('SolicitarColeta', () => {
     expect(createCollectionMock).not.toHaveBeenCalled()
   })
 
+  it('sends an immediate collection without scheduledAt', async () => {
+    createCollectionMock.mockResolvedValue({
+      data: { ...createdCollection, status: 'pending', scheduledAt: null },
+    })
+    renderRequestForm()
+    await screen.findByText(point.name)
+
+    fireEvent.change(screen.getByLabelText('Quantidade'), {
+      target: { value: '2' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Solicitar coleta' }))
+
+    expect(
+      await screen.findByText('acompanhamento carregado'),
+    ).toBeInTheDocument()
+    expect(createCollectionMock).toHaveBeenCalledWith({
+      collectionPointId: point.id,
+      materials: [{ type: 'paper', quantity: 2, unit: 'kg' }],
+      notes: undefined,
+    })
+  })
+
   it('creates the collection and navigates to its tracking page', async () => {
     createCollectionMock.mockResolvedValue({ data: createdCollection })
     renderRequestForm()
@@ -95,6 +118,7 @@ describe('SolicitarColeta', () => {
     fireEvent.change(screen.getByLabelText('Quantidade'), {
       target: { value: '2' },
     })
+    fireEvent.click(screen.getByLabelText('Escolher data futura'))
     fireEvent.change(screen.getByLabelText('Data e horário da coleta'), {
       target: { value: '2030-01-01T10:00' },
     })

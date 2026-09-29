@@ -5,30 +5,36 @@ import { Card, ErrorState, Loading, StatusBadge } from '../../components/ui'
 import AssignmentActions from '../../components/collectors/AssignmentActions'
 import { useCompleteCollection } from '../../hooks/useCompleteCollection'
 import { useLiveResource } from '../../hooks/useLiveResource'
-import { getCollection } from '../../services/coletasService'
+import { getCollectorCollection } from '../../services/coletoresService'
+import { ApiError } from '../../services/api-error'
 import { createPollingStrategy } from '../../services/sync'
 import {
   collectionDateFormatters,
   materialLabels,
   unitLabels,
 } from '../../utils/collection-format'
+import Icon from '../../components/ui/Icon'
 import styles from './DetalheAtendimento.module.css'
 
 const pollingStrategy = createPollingStrategy()
 
 export default function DetalheAtendimento() {
   const { id = '' } = useParams()
-  const loadCollection = useCallback(
-    async () => (await getCollection(id)).data,
-    [id],
-  )
+  const loadCollection = useCallback(async () => {
+    return (await getCollectorCollection(id)).data
+  }, [id])
   const {
     data: collection,
     status,
     error,
     refetch,
     setData,
-  } = useLiveResource(loadCollection, pollingStrategy)
+  } = useLiveResource(
+    loadCollection,
+    pollingStrategy,
+    (current) =>
+      current.status === 'assigned' || current.status === 'in_service',
+  )
   const {
     completing,
     error: completionError,
@@ -41,7 +47,10 @@ export default function DetalheAtendimento() {
     return <Loading label="Carregando detalhes do atendimento" />
   }
 
-  if (status === 'error' && collection === null) {
+  if (
+    (status === 'error' && collection === null) ||
+    (error instanceof ApiError && error.code === 'RESOURCE_NOT_FOUND')
+  ) {
     return (
       <section className={styles.page}>
         <ErrorState
@@ -74,6 +83,7 @@ export default function DetalheAtendimento() {
   return (
     <section className={styles.page}>
       <Link className={styles.backLink} to="/coletor">
+        <Icon name="back" size={16} />
         Voltar à coleta atual
       </Link>
       <header className={styles.heading}>
@@ -82,7 +92,7 @@ export default function DetalheAtendimento() {
         <StatusBadge status={collection.status} />
       </header>
 
-      {status === 'error' && (
+      {error && (
         <ErrorState
           message={
             error?.message ?? 'Não foi possível atualizar o atendimento.'
@@ -108,6 +118,7 @@ export default function DetalheAtendimento() {
       )}
       {errorCode === 'NO_ACTIVE_ASSIGNMENT' && (
         <Link className={styles.backLink} to="/coletor">
+          <Icon name="back" size={16} />
           Voltar à coleta atual
         </Link>
       )}
@@ -119,7 +130,10 @@ export default function DetalheAtendimento() {
         </section>
 
         <section className={styles.section}>
-          <h2>Materiais</h2>
+          <h2 className="inline-icon">
+            <Icon name="box" size={19} />
+            Materiais
+          </h2>
           <ul className={styles.materials}>
             {collection.materials.map((material, index) => (
               <li key={`${material.type}-${index}`}>
@@ -139,7 +153,7 @@ export default function DetalheAtendimento() {
         </section>
 
         <section className={styles.section}>
-          <h2>Agendamento</h2>
+          <h2>{collection.scheduledAt ? 'Agendamento' : 'Solicitada em'}</h2>
           <p>
             <time dateTime={collectionDate}>
               {collectionDateFormatters.long.format(new Date(collectionDate))}

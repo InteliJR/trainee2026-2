@@ -11,6 +11,37 @@ export type CollectionCreditResult = {
 export class RewardService {
   constructor(private readonly prisma: PrismaClient) {}
 
+  async getSummary(userId: string) {
+    const [credits, debits, completedCollections] = await Promise.all([
+      this.prisma.rewardTransaction.aggregate({
+        where: { userId, kind: 'credit' }, _sum: { amount: true },
+      }),
+      this.prisma.rewardTransaction.aggregate({
+        where: { userId, kind: 'debit' }, _sum: { amount: true },
+      }),
+      this.prisma.rewardTransaction.count({
+        where: { userId, kind: 'credit', reason: 'collection_completed' },
+      }),
+    ])
+    return {
+      balance: Math.max(0, (credits._sum.amount ?? 0) - (debits._sum.amount ?? 0)),
+      completedCollections,
+    }
+  }
+
+  async creditPendingCompletedCollections(): Promise<number> {
+    const pending = await this.prisma.collection.findMany({
+      where: { status: 'completed', pointsAwarded: null },
+      select: { id: true },
+      orderBy: { updatedAt: 'asc' },
+      take: 50,
+    })
+    for (const collection of pending) {
+      await this.creditCompletedCollectionOnce(collection.id, 1)
+    }
+    return pending.length
+  }
+
   async creditCompletedCollectionOnce(
     collectionId: string,
     points: number,

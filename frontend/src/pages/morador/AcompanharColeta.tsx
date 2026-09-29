@@ -12,14 +12,11 @@ import {
   unitLabels,
 } from '../../utils/collection-format'
 import { getErrorMessage } from '../../utils/error-messages'
+import Icon from '../../components/ui/Icon'
 import styles from './AcompanharColeta.module.css'
 
 const pollingStrategy = createPollingStrategy()
-const terminalStatuses: CollectionStatus[] = [
-  'completed',
-  'cancelled',
-  'integration_failed',
-]
+const terminalStatuses: CollectionStatus[] = ['completed', 'cancelled']
 
 export default function AcompanharColeta() {
   const { id = '' } = useParams()
@@ -59,9 +56,12 @@ export default function AcompanharColeta() {
 
   const showCollector =
     collection.status === 'assigned' || collection.status === 'in_service'
-  const canCancel = ['scheduled', 'pending', 'assigned'].includes(
-    collection.status,
-  )
+  const canCancel = [
+    'scheduled',
+    'integration_failed',
+    'pending',
+    'assigned',
+  ].includes(collection.status)
   const collectionDate = collection.scheduledAt ?? collection.createdAt
 
   async function handleCancel() {
@@ -76,8 +76,13 @@ export default function AcompanharColeta() {
         cause instanceof ApiError &&
         cause.code === 'COLLECTION_NOT_CANCELLABLE'
       ) {
-        setCannotCancel(true)
-        setCancelError('Esta coleta não pode mais ser cancelada.')
+        const canRetry = collection.status === 'integration_failed'
+        setCannotCancel(!canRetry)
+        setCancelError(
+          canRetry
+            ? 'A solicitação está sendo enviada. Tente cancelar novamente em instantes.'
+            : 'Esta coleta não pode mais ser cancelada.',
+        )
       } else {
         setCancelError(
           getErrorMessage(cause, 'Não foi possível cancelar a coleta.'),
@@ -90,7 +95,8 @@ export default function AcompanharColeta() {
 
   return (
     <section className={styles.page}>
-      <Link className={styles.backLink} to="/morador/historico">
+      <Link className={styles.backLink} to="/morador/evolucao">
+        <Icon name="back" size={16} />
         Voltar ao histórico
       </Link>
       <header className={styles.heading}>
@@ -99,8 +105,18 @@ export default function AcompanharColeta() {
         <StatusBadge status={collection.status} />
       </header>
 
+      {collection.status === 'integration_failed' && (
+        <p role="status">
+          Não foi possível confirmar a solicitação com a EcoRota. O sistema
+          tentará enviá-la novamente; você também pode cancelá-la.
+        </p>
+      )}
+
       <section className={styles.section}>
-        <h2>Materiais</h2>
+        <h2 className="inline-icon">
+          <Icon name="box" size={19} />
+          Materiais
+        </h2>
         <ul className={styles.materials}>
           {collection.materials.map((material, index) => (
             <li key={`${material.type}-${index}`}>
@@ -132,7 +148,10 @@ export default function AcompanharColeta() {
       )}
 
       <section className={styles.section}>
-        <h2>Detalhes</h2>
+        <h2 className="inline-icon">
+          <Icon name="info" size={19} />
+          Detalhes
+        </h2>
         <dl className={styles.details}>
           <div>
             <dt>

@@ -1,7 +1,8 @@
 .card {
+  min-width: 0;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 20px;
-  background: color-mix(in srgb, var(--color-paper), white 35%);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  background: var(--color-surface);
   color: var(--color-forest);
 }

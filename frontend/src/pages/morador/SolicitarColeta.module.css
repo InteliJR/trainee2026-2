@@ -1,17 +1,24 @@
 .page {
   display: grid;
   gap: 24px;
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 36px 24px 52px;
+  padding: 38px 40px 52px;
 }
 
 .backLink {
+  display: inline-flex;
+  justify-self: start;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
   color: var(--color-canopy);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
+}
+.backLink:hover {
   text-decoration: underline;
-  text-underline-offset: 3px;
+  text-underline-offset: 4px;
 }
 
 .heading {
@@ -28,8 +35,10 @@
 .heading h1 {
   color: var(--color-forest);
   font-family: var(--font-display);
-  font-size: 30px;
-  font-weight: 600;
+  font-size: clamp(28px, 2.6vw, 36px);
+  line-height: 1.2;
+  letter-spacing: -0.045em;
+  font-weight: 500;
 }
 
 .heading p:last-child {
@@ -38,9 +47,10 @@
 }
 
 .eyebrow {
-  color: var(--color-leaf);
-  font-size: 12px;
-  font-weight: 700;
+  margin: 0;
+  color: var(--color-muted);
+  font: 10px/1.5 var(--font-mono);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -71,6 +81,28 @@
 .materials {
   display: grid;
   gap: 14px;
+}
+
+.timing {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.timing legend {
+  color: var(--color-forest);
+  font-weight: 600;
+}
+
+.timing label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
 
 .formError {
@@ -113,5 +145,181 @@
   .sectionHeading {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 1100px) {
+  .page {
+    padding-inline: 28px;
+  }
+}
+@media (max-width: 800px) {
+  .page {
+    padding: 28px 20px 40px;
+  }
+}
+
+.requestLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 250px;
+  gap: 28px;
+  align-items: start;
+}
+.form {
+  min-width: 0;
+  padding: 28px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+.point {
+  padding: 15px 18px;
+  border-left: 2px solid var(--color-leaf);
+  border-radius: 0 8px 8px 0;
+  background: var(--color-mist);
+}
+.fieldLabel {
+  font: 10px var(--font-mono);
+}
+.point strong {
+  font-size: 16px;
+  font-weight: 500;
+}
+.sectionHeading h2 {
+  font-size: 20px;
+  font-weight: 500;
+}
+.sectionHeading > button {
+  font-size: 11px;
+  padding: 9px 12px;
+}
+.timing {
+  gap: 10px;
+  border: 0;
+  padding: 0;
+}
+.timing legend {
+  margin-bottom: 12px;
+  font: 11px var(--font-mono);
+  color: var(--color-canopy);
+}
+.timing label {
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  transition: background 180ms;
+}
+.timing label:has(input:checked) {
+  background: var(--color-mist);
+  border-color: var(--color-leaf);
+}
+.timing input {
+  margin: 0;
+  accent-color: var(--color-canopy);
+  width: 15px;
+  height: 15px;
+}
+.guide {
+  padding: 25px;
+  border-radius: var(--radius-card);
+  background: var(--color-canopy);
+  color: var(--color-paper);
+}
+.guideIcon {
+  display: block;
+  margin-bottom: 22px;
+  color: #c1d3a8;
+}
+.guide .eyebrow {
+  color: #c1d3a8;
+  font-size: 8px;
+}
+.guide h2 {
+  margin: 12px 0 24px;
+  font-size: 27px;
+  line-height: 1.25;
+  font-weight: 400;
+}
+.guide ol {
+  display: grid;
+  gap: 24px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.guide li {
+  display: flex;
+  align-items: start;
+  gap: 11px;
+}
+.guide li > span {
+  display: grid;
+  flex: 0 0 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid #ffffff33;
+  border-radius: 50%;
+  color: #c1d3a8;
+  font: 9px var(--font-mono);
+}
+.guide strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.guide p {
+  margin: 5px 0 0;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #cad7c2;
+}
+.guideNote {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  border-top: 1px solid #ffffff26;
+  margin-top: 28px;
+  padding-top: 20px;
+  color: #c1d3a8;
+}
+.guideNote p {
+  margin: 0;
+  font-size: 10px;
+}
+@media (max-width: 1200px) {
+  .requestLayout {
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 20px;
+  }
+  .guide {
+    padding: 22px;
+  }
+  .form {
+    padding: 22px;
+  }
+}
+@media (max-width: 1050px) {
+  .requestLayout {
+    grid-template-columns: 1fr;
+  }
+  .guide {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .form {
+    padding: 20px 16px;
+  }
+  .sectionHeading {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  .sectionHeading > button {
+    font-size: 10px;
+    padding-inline: 8px;
+  }
+  .actions > button {
+    width: 100%;
   }
 }

@@ -1,7 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cancelCollection, completeCollection } from './coletasService'
 import { mockCollections } from './mocks/collections'
 import { ApiError } from './api-error'
+
+vi.mock('./config', () => ({ USE_MOCKS: true }))
 
 describe('collection state mock rules', () => {
   afterEach(() => {

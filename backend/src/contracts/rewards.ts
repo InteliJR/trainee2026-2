@@ -11,6 +11,7 @@ import {
 export const rewardBalanceSchema = z
   .object({
     balance: z.number().int().nonnegative(),
+    completedCollections: z.number().int().nonnegative(),
   })
   .strict()
 

@@ -6,8 +6,8 @@ const config = loadEnvironment()
 if (config.NODE_ENV === 'production') throw new Error('Demo accounts are disabled in production')
 
 const password = process.env.DEMO_PASSWORD
-if (!password || password.length < 12) {
-  throw new Error('Set DEMO_PASSWORD to at least 12 characters before seeding')
+if (!password) {
+  throw new Error('Set DEMO_PASSWORD before seeding')
 }
 
 const prisma = createPrisma(config)
