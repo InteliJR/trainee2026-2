@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import Icon from '../../components/ui/Icon'
 import styles from './EcoRotaDashboard.module.css'
 
@@ -90,19 +89,9 @@ export default function EcoRotaDashboard() {
   const completionRate: Record<Period, number> = { day: 85, week: 86, month: 87, year: 89, total: 84 }
 
   return (
-    <main className={styles.page}>
-      <header className={styles.topbar}>
-        <Link className={styles.brand} to="/login" aria-label="EcoRota, voltar ao acesso">
-          <span className={styles.brandMark}><Icon name="route" size={22} /></span>
-          <span>eco<span>rota</span><i>.</i></span>
-        </Link>
-        <div className={styles.topbarRight}>
-          <span className={styles.demoBadge}><span />Demonstração com dados simulados</span>
-          <Link className={styles.backLink} to="/login">Sair do painel <Icon name="arrow" size={16} /></Link>
-        </div>
-      </header>
-
+    <section className={styles.page}>
       <div className={styles.content}>
+        <p className={styles.demoBadge}><span />Demonstração com dados simulados</p>
         <section className={styles.intro}>
           <div>
             <p className={styles.eyebrow}><Icon name="grid" size={14} /> VISÃO GERAL DA OPERAÇÃO</p>
@@ -204,6 +193,6 @@ export default function EcoRotaDashboard() {
 
         <footer className={styles.footer}><span><Icon name="leaf" size={15} /> Cada coleta faz parte de uma mudança maior.</span><span>EcoRota · Painel de demonstração</span></footer>
       </div>
-    </main>
+    </section>
   )
 }
